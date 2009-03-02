@@ -114,12 +114,10 @@ class SQL::Abstract {
   method _where(ArrayRef $ast) {
     my (undef, @clauses) = @$ast;
   
-    $DB::single = 1;
     return 'WHERE ' . $self->_recurse_where(\@clauses);
   }
 
   method _recurse_where($clauses) {
-    $DB::single = 1;
 
     my $OP = 'AND';
     my $prio = $PRIO{and};
@@ -133,6 +131,7 @@ class SQL::Abstract {
 
     my @output;
     foreach (@$clauses) {
+      croak "invalid component in where clause" unless ArrayRef->check($_);
       my $op = $_->[0];
 
       unless (substr($op, 0, 1) eq '-') {
