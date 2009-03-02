@@ -67,13 +67,36 @@ class SQL::Abstract {
     $self = $self->new unless blessed($self);
 
     local $_ = $ast->[0];
-    s/^-/_/ or croak "Unknown type tag '$_'";
+    s/^-/_/g or croak "Unknown type tag '$_'";
     my $meth = $self->can($_) || \&_generic_func;
     return $meth->($self, $ast);
   }
 
   method _select(ArrayRef $ast) {
     
+  }
+
+  method _where(ArrayRef $ast) {
+    my (undef, @clauses) = @$ast;
+  
+    return 'WHERE ' . $self->_recurse_where(\@clauses);
+  }
+
+  method _order_by(ArrayRef $ast) {
+    my (undef, @clauses) = @$ast;
+
+    my @output;
+   
+    for (@clauses) {
+      if ($_->[0] =~ /^-(asc|desc)$/) {
+        my $o = $1;
+        push @output, $self->generate($_->[1]) . " " . uc($o);
+        next;
+      }
+      push @output, $self->generate($_);
+    }
+
+    return "ORDER BY " . join(", ", @output);
   }
 
   method _name(ArrayRef $ast) {
@@ -109,12 +132,6 @@ class SQL::Abstract {
 
     $self->add_bind($value);
     return "?";
-  }
-
-  method _where(ArrayRef $ast) {
-    my (undef, @clauses) = @$ast;
-  
-    return 'WHERE ' . $self->_recurse_where(\@clauses);
   }
 
   method _recurse_where($clauses) {

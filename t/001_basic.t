@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 11;
+use Test::More tests => 14;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 
@@ -21,6 +21,22 @@ is SQL::Abstract->generate(
   [ -alias => [ -name => qw/me id/], "foobar", ] 
 ), "me.id AS foobar",
   "Alias generator";
+
+is SQL::Abstract->generate(
+  [ -order_by => [ -name => qw/me date/ ] ]
+), "ORDER BY me.date";
+
+is SQL::Abstract->generate(
+  [ -order_by => 
+    [ -name => qw/me date/ ],
+    [ -name => qw/me foobar/ ],
+  ]
+), "ORDER BY me.date, me.foobar";
+
+is SQL::Abstract->generate(
+  [ -order_by => [ -desc => [ -name => qw/me date/ ] ] ]
+), "ORDER BY me.date DESC";
+
 
 is SQL::Abstract->generate(
   [ -where =>
