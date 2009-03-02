@@ -8,7 +8,7 @@ class SQL::Abstract {
   use Data::Dump qw/pp/;
 
   use Moose::Util::TypeConstraints;
-  use MooseX::Types -declare => ['NameSeparator'];
+  use MooseX::Types -declare => [qw/NameSeparator/];
   use MooseX::Types::Moose qw/ArrayRef Str/;
   use MooseX::AttributeHelpers;
 
@@ -24,6 +24,19 @@ class SQL::Abstract {
   our $VERSION = '2.000000';
 
   our $AST_VERSION = '1';
+
+  # Operator precedence for bracketing
+  our %PRIO = (
+    and => 10,
+    or  => 50
+  );
+
+  our %OP_MAP = (
+    '>' => '>',
+    '<' => '<',
+    '==' => '=',
+    '!=' => '!=',
+  );
 
   has name_separator => ( 
     is => 'rw', 
@@ -50,8 +63,8 @@ class SQL::Abstract {
     }
   );
 
-  method generate (ArrayRef $ast) {
-    $self = new $self unless blessed($self);
+  method generate (Object|ClassName $self: ArrayRef $ast) {
+    $self = $self->new unless blessed($self);
 
     local $_ = $ast->[0];
     s/^-/_/ or croak "Unknown type tag '$_'";
@@ -100,24 +113,54 @@ class SQL::Abstract {
 
   method _where(ArrayRef $ast) {
     my (undef, @clauses) = @$ast;
+  
+    $DB::single = 1;
+    return 'WHERE ' . $self->_recurse_where(\@clauses);
+  }
+
+  method _recurse_where($clauses) {
+    $DB::single = 1;
+
+    my $OP = 'AND';
+    my $prio = $PRIO{and};
+    my $first = $clauses->[0];
+
+    if (!ref $first && $first =~ /^-(and|or)$/) {
+      $OP = uc($1);
+      $prio = $PRIO{$1};
+      shift @$clauses;
+    }
 
     my @output;
-
-    foreach (@clauses) {
+    foreach (@$clauses) {
       my $op = $_->[0];
 
       unless (substr($op, 0, 1) eq '-') {
         # A simple comparison op (==, >, etc.)
-        croak "Binary operator $op expects 2 children, got " . $#$_
-          if @{$_} > 3;
+        
+        push @output, $self->_binop(@$_);
+        
+      } elsif ($op =~ /^-(and|or)$/) {
+        my $sub_prio = $PRIO{$1}; 
 
-        push @output, $self->generate($_->[1]), 
-                      $op,
-                      $self->generate($_->[2]);
+        if ($sub_prio >= $prio) {
+          push @output, $self->_recurse_where($_);
+        } else {
+          push @output, '(' . $self->_recurse_where($_) . ')';
+        }
+      } else {
+        push @output, $self->generate($_);
       }
     }
 
-    return join(' ', 'WHERE', @output);
+    return wantarray ? @output : join(" $OP ", @output);
+  }
+
+  method _binop($op, $lhs, $rhs) {
+    join (' ', $self->generate($lhs), 
+               $OP_MAP{$op} || croak("Unknown binary operator $op"),
+               $self->generate($rhs)
+    );
   }
 
   method _generic_func(ArrayRef $ast) {
