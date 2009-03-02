@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 9;
+use Test::More tests => 11;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 
@@ -63,4 +63,25 @@ is SQL::Abstract->generate(
         [ '<', [-name => qw/me name/], [-value => '100' ] ]
       ]
   ]
-), "WHERE me.id = ? OR (me.name > ? AND me.name < ?)", "where clause";
+), "WHERE me.id = ? OR me.name > ? AND me.name < ?", "where clause";
+
+is SQL::Abstract->generate(
+  [ -where =>  -and =>
+      [ '==', [-name => qw/me id/], [-value => 500 ] ],
+      [ -and => 
+        [ '>', [-name => qw/me name/], [-value => '200' ] ],
+        [ '<', [-name => qw/me name/], [-value => '100' ] ]
+      ]
+  ]
+), "WHERE me.id = ? AND me.name > ? AND me.name < ?", "where clause";
+
+
+is SQL::Abstract->generate(
+  [ -where =>  -and =>
+      [ '==', [-name => qw/me id/], [-value => 500 ] ],
+      [ -or => 
+        [ '>', [-name => qw/me name/], [-value => '200' ] ],
+        [ '<', [-name => qw/me name/], [-value => '100' ] ]
+      ]
+  ]
+), "WHERE me.id = ? AND (me.name > ? OR me.name < ?)", "where clause";

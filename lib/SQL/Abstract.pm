@@ -142,7 +142,7 @@ class SQL::Abstract {
       } elsif ($op =~ /^-(and|or)$/) {
         my $sub_prio = $PRIO{$1}; 
 
-        if ($sub_prio >= $prio) {
+        if ($sub_prio <= $prio) {
           push @output, $self->_recurse_where($_);
         } else {
           push @output, '(' . $self->_recurse_where($_) . ')';
@@ -152,7 +152,7 @@ class SQL::Abstract {
       }
     }
 
-    return wantarray ? @output : join(" $OP ", @output);
+    return join(" $OP ", @output);
   }
 
   method _binop($op, $lhs, $rhs) {
