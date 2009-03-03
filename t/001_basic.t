@@ -6,7 +6,8 @@ use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 
-my $sqla = SQL::Abstract->new(ast_version => 1);
+# TODO: once MXMS supports %args, use that here
+my $sqla = SQL::Abstract->create(1);
 is $sqla->dispatch( [ -name => qw/me id/]), "me.id",
   "Simple name generator";
 
