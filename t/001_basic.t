@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 14;
+use Test::More tests => 15;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -109,3 +109,21 @@ is $sqla->generate(
       ]
   ]
 ), "WHERE me.id = ? AND (me.name > ? OR me.name < ?)", "where clause";
+
+eq_or_diff(
+  [SQL::Abstract->generate(
+    [ -where => 
+      [ -in => 
+        [-name => qw/me id/],
+        [-value => '100' ],
+        [-value => '200' ],
+        [-value => '300' ],
+      ]
+    ]
+  ) ],
+
+  [ "WHERE me.id IN (?, ?, ?)", 
+    [ qw/100 200 300/]
+  ],
+  
+  "where IN clause");

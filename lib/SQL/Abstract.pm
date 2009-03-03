@@ -183,6 +183,15 @@ class SQL::Abstract {
     );
   }
 
+  method _in($ast) {
+    my (undef, $field, @values) = @$ast;
+
+    return $self->generate($field) .
+           " IN (" .
+           join(", ", map { $self->generate($_) } @values ) .
+           ")";
+  }
+
   method _generic_func(ArrayRef $ast) {
   }
 
