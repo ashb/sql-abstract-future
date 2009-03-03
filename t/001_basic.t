@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 15;
+use Test::More tests => 18;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -10,6 +10,14 @@ use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 my $sqla = SQL::Abstract->create(1);
 is $sqla->dispatch( [ -name => qw/me id/]), "me.id",
   "Simple name generator";
+
+is $sqla->dispatch(
+  [ '-false' ]
+), "0 = 1", "false value";
+
+is $sqla->dispatch(
+  [ '-true' ]
+), "1 = 1", "true value";
 
 is $sqla->dispatch(
   [ -list => 
@@ -40,6 +48,10 @@ is $sqla->dispatch(
   [ -order_by => [ -desc => [ -name => qw/me date/ ] ] ]
 ), "ORDER BY me.date DESC";
 
+
+is $sqla->dispatch(
+  [ -in => [  ] ]
+), "0 = 1", "emtpy -in";
 
 is $sqla->dispatch(
   [ -where =>

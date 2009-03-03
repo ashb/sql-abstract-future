@@ -134,6 +134,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   method _in($ast) {
     my (undef, $field, @values) = @$ast;
 
+    return $self->_false if @values == 0;
     return $self->dispatch($field) .
            " IN (" .
            join(", ", map { $self->dispatch($_) } @values ) .
@@ -142,5 +143,9 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
   method _generic_func(ArrayRef $ast) {
   }
+
+  # 'constants' that are portable across DBs
+  method _false($ast?) { "0 = 1" }
+  method _true($ast?) { "1 = 1" }
 
 }
