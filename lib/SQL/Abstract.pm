@@ -55,21 +55,25 @@ class SQL::Abstract {
 
   has binds => (
     isa => ArrayRef,
+    is => 'ro',
     default => sub { [ ] },
     metaclass => 'Collection::Array',
     provides => {
       push => 'add_bind',
-      get => 'binds'
+      clear => '_clear_binds',
     }
   );
 
   method generate (Object|ClassName $self: ArrayRef $ast) {
-    $self = $self->new unless blessed($self);
+    my $class_meth = !blessed($self);
+    $self = $self->new if $class_meth;
 
     local $_ = $ast->[0];
     s/^-/_/g or croak "Unknown type tag '$_'";
     my $meth = $self->can($_) || \&_generic_func;
-    return $meth->($self, $ast);
+    return $class_meth
+         ? ($meth->($self, $ast), $self->binds)
+         : $meth->($self, $ast);
   }
 
   method _select(ArrayRef $ast) {

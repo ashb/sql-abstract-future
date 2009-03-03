@@ -9,5 +9,6 @@ requires 'MooseX::Method::Signatures' => '0.10';
 requires 'MooseX::Declare' => '0.07';
 
 test_requires 'Test::More';
+test_requires 'Test::Differences';
 
 WriteAll;
