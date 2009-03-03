@@ -6,11 +6,11 @@ use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 
-my $sqla = SQL::Abstract->new;
-is $sqla->generate( [ -name => qw/me id/]), "me.id",
+my $sqla = SQL::Abstract->new(ast_version => 1);
+is $sqla->dispatch( [ -name => qw/me id/]), "me.id",
   "Simple name generator";
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -list => 
     [ -name => qw/me id/],
     [ -name => qw/me foo bar/],
@@ -19,35 +19,36 @@ is $sqla->generate(
 ), "me.id, me.foo.bar, bar",
   "List generator";
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -alias => [ -name => qw/me id/], "foobar", ] 
 ), "me.id AS foobar",
   "Alias generator";
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -order_by => [ -name => qw/me date/ ] ]
 ), "ORDER BY me.date";
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -order_by => 
     [ -name => qw/me date/ ],
     [ -name => qw/me foobar/ ],
   ]
 ), "ORDER BY me.date, me.foobar";
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -order_by => [ -desc => [ -name => qw/me date/ ] ] ]
 ), "ORDER BY me.date DESC";
 
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -where =>
       [ '>', [-name => qw/me id/], [-value => 500 ] ]
   ]
 ), "WHERE me.id > ?", "where clause";
 
 eq_or_diff( [ SQL::Abstract->generate(
-    [ -where =>
+    [ -ast_version => 1,
+      -where =>
         [ '>', [-name => qw/me id/], [-value => 500 ] ],
         [ '==', [-name => qw/me name/], [-value => '200' ] ]
     ]
@@ -61,7 +62,7 @@ eq_or_diff( [ SQL::Abstract->generate(
 );
 
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -where =>  -or =>
       [ '>', [-name => qw/me id/], [-value => 500 ] ],
       [ '==', [-name => qw/me name/], [-value => '200' ] ],
@@ -69,7 +70,7 @@ is $sqla->generate(
 ), "WHERE me.id > ? OR me.name = ?", "where clause";
 
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -where =>  -or =>
       [ '>', [-name => qw/me id/], [-value => 500 ] ],
       [ -or => 
@@ -79,7 +80,7 @@ is $sqla->generate(
   ]
 ), "WHERE me.id > ? OR me.name = ? OR me.name = ?", "where clause";
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -where =>  -or =>
       [ '==', [-name => qw/me id/], [-value => 500 ] ],
       [ -and => 
@@ -89,7 +90,7 @@ is $sqla->generate(
   ]
 ), "WHERE me.id = ? OR me.name > ? AND me.name < ?", "where clause";
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -where =>  -and =>
       [ '==', [-name => qw/me id/], [-value => 500 ] ],
       [ -and => 
@@ -100,7 +101,7 @@ is $sqla->generate(
 ), "WHERE me.id = ? AND me.name > ? AND me.name < ?", "where clause";
 
 
-is $sqla->generate(
+is $sqla->dispatch(
   [ -where =>  -and =>
       [ '==', [-name => qw/me id/], [-value => 500 ] ],
       [ -or => 
@@ -112,7 +113,8 @@ is $sqla->generate(
 
 eq_or_diff(
   [SQL::Abstract->generate(
-    [ -where => 
+    [ -ast_version => 1,
+      -where =>
       [ -in => 
         [-name => qw/me id/],
         [-value => '100' ],

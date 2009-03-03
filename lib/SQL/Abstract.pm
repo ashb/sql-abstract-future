@@ -9,10 +9,10 @@ class SQL::Abstract {
 
   use Moose::Util::TypeConstraints;
   use MooseX::Types -declare => [qw/NameSeparator/];
-  use MooseX::Types::Moose qw/ArrayRef Str/;
+  use MooseX::Types::Moose qw/ArrayRef Str Int/;
   use MooseX::AttributeHelpers;
 
-  use namespace::clean -except => ['meta'];
+  clean;
 
   subtype NameSeparator,
     as ArrayRef[Str];
@@ -36,6 +36,12 @@ class SQL::Abstract {
     '<' => '<',
     '==' => '=',
     '!=' => '!=',
+  );
+
+  has ast_version => (
+    is => 'ro',
+    isa => Int,
+    required => 1
   );
 
   has name_separator => ( 
@@ -64,16 +70,29 @@ class SQL::Abstract {
     }
   );
 
-  method generate (Object|ClassName $self: ArrayRef $ast) {
-    my $class_meth = !blessed($self);
-    $self = $self->new if $class_meth;
+  method BUILD( $ast ) {
+    croak "AST version @{[$self->ast_version]} is greater than supported version of $AST_VERSION"
+      if $self->ast_version > $AST_VERSION;
+  }
+
+  # Main entry point
+  method generate(ClassName $class: ArrayRef $ast) {
+    croak "SQL::Abstract AST version not specified"
+      unless ($ast->[0] eq '-ast_version');
+
+    my (undef, $ver) = splice(@$ast, 0, 2);
+
+    my $self = $class->new(ast_version => $ver);
+
+    return ($self->dispatch($ast), $self->binds);
+  }
+
+  method dispatch (ArrayRef $ast) {
 
     local $_ = $ast->[0];
     s/^-/_/g or croak "Unknown type tag '$_'";
     my $meth = $self->can($_) || \&_generic_func;
-    return $class_meth
-         ? ($meth->($self, $ast), $self->binds)
-         : $meth->($self, $ast);
+    return $meth->($self, $ast);
   }
 
   method _select(ArrayRef $ast) {
@@ -94,10 +113,10 @@ class SQL::Abstract {
     for (@clauses) {
       if ($_->[0] =~ /^-(asc|desc)$/) {
         my $o = $1;
-        push @output, $self->generate($_->[1]) . " " . uc($o);
+        push @output, $self->dispatch($_->[1]) . " " . uc($o);
         next;
       }
-      push @output, $self->generate($_);
+      push @output, $self->dispatch($_);
     }
 
     return "ORDER BY " . join(", ", @output);
@@ -116,18 +135,22 @@ class SQL::Abstract {
     return join($sep->[0], @names);
   }
 
+  method _join(ArrayRef $ast) {
+    
+  }
+
   method _list(ArrayRef $ast) {
     my (undef, @items) = @$ast;
 
     return join(
       $self->list_separator,
-      map { $self->generate($_) } @items);
+      map { $self->dispatch($_) } @items);
   }
 
   method _alias(ArrayRef $ast) {
     my (undef, $alias, $as) = @$ast;
 
-    return $self->generate($alias) . " AS $as";
+    return $self->dispatch($alias) . " AS $as";
 
   }
 
@@ -169,7 +192,7 @@ class SQL::Abstract {
           push @output, '(' . $self->_recurse_where($_) . ')';
         }
       } else {
-        push @output, $self->generate($_);
+        push @output, $self->dispatch($_);
       }
     }
 
@@ -177,18 +200,18 @@ class SQL::Abstract {
   }
 
   method _binop($op, $lhs, $rhs) {
-    join (' ', $self->generate($lhs), 
+    join (' ', $self->dispatch($lhs), 
                $OP_MAP{$op} || croak("Unknown binary operator $op"),
-               $self->generate($rhs)
+               $self->dispatch($rhs)
     );
   }
 
   method _in($ast) {
     my (undef, $field, @values) = @$ast;
 
-    return $self->generate($field) .
+    return $self->dispatch($field) .
            " IN (" .
-           join(", ", map { $self->generate($_) } @values ) .
+           join(", ", map { $self->dispatch($_) } @values ) .
            ")";
   }
 
