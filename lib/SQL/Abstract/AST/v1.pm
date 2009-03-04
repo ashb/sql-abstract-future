@@ -12,11 +12,18 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
   clean;
 
+  # set things that are valid in where clauses
   override _build_where_dispatch_table {
     return { 
       %{super()},
       -in => $self->can('_in'),
-      -not_in => $self->can('_in')
+      -not_in => $self->can('_in'),
+      map { +"-$_" => $self->can("_$_") } qw/
+        value
+        name
+        true
+        false
+      /
     };
   }
 
@@ -102,14 +109,10 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
     my @output;
     foreach (@$clauses) {
-      croak "invalid component in where clause" unless ArrayRef->check($_);
+      croak "invalid component in where clause: $_" unless ArrayRef->check($_);
       my $op = $_->[0];
 
-      if (my $code = $dispatch_table->{$op}) { 
-        
-        push @output, $code->($self, $_);
-
-      } elsif ($op =~ /^-(and|or)$/) {
+      if ($op =~ /^-(and|or)$/) {
         my $sub_prio = $SQL::Abstract::PRIO{$1}; 
 
         if ($sub_prio <= $prio) {
@@ -118,19 +121,35 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
           push @output, '(' . $self->_recurse_where($_) . ')';
         }
       } else {
-        croak "Unknown where clause '$op'";
+        push @output, $self->_where_component($_);
       }
     }
 
     return join(" $OP ", @output);
   }
 
+  method _where_component($ast) {
+    my $op = $ast->[0];
+
+    if (my $code = $self->lookup_where_dispatch($op)) { 
+      
+      return $code->($self, $ast);
+
+    }
+    croak "'$op' is not a valid clause in a where AST"
+      if $op =~ /^-/;
+
+    croak "'$op' is not a valid operator";
+   
+  }
+
+
   method _binop($ast) {
     my ($op, $lhs, $rhs) = @$ast;
 
-    join (' ', $self->dispatch($lhs), 
+    join (' ', $self->_where_component($lhs), 
                $self->binop_mapping($op) || croak("Unknown binary operator $op"),
-               $self->dispatch($rhs)
+               $self->_where_component($rhs)
     );
   }
 
@@ -140,7 +159,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     my $not = $tag =~ /^-not/ ? " NOT" : "";
 
     return $self->_false if @values == 0;
-    return $self->dispatch($field) .
+    return $self->_where_component($field) .
            $not. 
            " IN (" .
            join(", ", map { $self->dispatch($_) } @values ) .
@@ -153,11 +172,11 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     my $not = $tag =~ /^-not/ ? " NOT" : "";
 
     return $self->_false if @values == 0;
-    return $self->dispatch($field) .
+    return $self->_where_component($field) .
            $not. 
-           " LIKE (" .
-           join(", ", map { $self->dispatch($_) } @values ) .
-           ")";
+           " LIKE " .
+           join(", ", map { $self->_where_component($_) } @values ) .
+           "";
   }
 
   method _generic_func(ArrayRef $ast) {

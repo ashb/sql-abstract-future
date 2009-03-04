@@ -8,7 +8,7 @@ class SQL::Abstract {
 
   use Moose::Util::TypeConstraints;
   use MooseX::Types -declare => [qw/NameSeparator/];
-  use MooseX::Types::Moose qw/ArrayRef Str Int HashRef/;
+  use MooseX::Types::Moose qw/ArrayRef Str Int HashRef CodeRef/;
   use MooseX::AttributeHelpers;
 
   clean;
@@ -43,6 +43,11 @@ class SQL::Abstract {
   has where_dispatch_table => (
     is => 'ro',
     lazy_build => 1,
+    isa => HashRef[CodeRef],
+    metaclass => 'Collection::ImmutableHash',
+    provides => {
+      get => 'lookup_where_dispatch'
+    }
   );
 
   has binop_map => (
@@ -60,7 +65,7 @@ class SQL::Abstract {
   sub _build_binop_map { return {%BINOP_MAP} };
 
   method _build_where_dispatch_table {
-    my $binop = $self->can('_binop');
+    my $binop = $self->can('_binop') or croak "InternalError: $self can't do _binop!";
     return {
       map { $_ => $binop } $self->binary_operators
     }
