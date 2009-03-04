@@ -1,13 +1,14 @@
 use strict;
 use warnings;
 
-use Test::More tests => 18;
+use Test::More tests => 9;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 
-# TODO: once MXMS supports %args, use that here
 my $sqla = SQL::Abstract->create(1);
+
+# TODO: once MXMS supports %args, use that here
 is $sqla->dispatch( [ -name => qw/me id/]), "me.id",
   "Simple name generator";
 
@@ -35,110 +36,20 @@ is $sqla->dispatch(
 
 is $sqla->dispatch(
   [ -order_by => [ -name => qw/me date/ ] ]
-), "ORDER BY me.date";
+), "ORDER BY me.date",
+   "order by";
 
 is $sqla->dispatch(
   [ -order_by => 
     [ -name => qw/me date/ ],
     [ -name => qw/me foobar/ ],
   ]
-), "ORDER BY me.date, me.foobar";
+), "ORDER BY me.date, me.foobar",
+   "order by";
 
 is $sqla->dispatch(
   [ -order_by => [ -desc => [ -name => qw/me date/ ] ] ]
-), "ORDER BY me.date DESC";
+), "ORDER BY me.date DESC",
+   "order by desc";
 
 
-is $sqla->dispatch(
-  [ -in => [  ] ]
-), "0 = 1", "emtpy -in";
-
-is $sqla->dispatch(
-  [ -where =>
-      [ '>', [-name => qw/me id/], [-value => 500 ] ]
-  ]
-), "WHERE me.id > ?", "where clause";
-
-eq_or_diff( [ SQL::Abstract->generate(
-    [ -ast_version => 1,
-      -where =>
-        [ '>', [-name => qw/me id/], [-value => 500 ] ],
-        [ '==', [-name => qw/me name/], [-value => '200' ] ]
-    ]
-  ) ], 
-  [ "WHERE me.id > ? AND me.name = ?",
-    [ 500,
-      '200'
-    ]
-  ],
-  "Where with binds"
-);
-
-
-is $sqla->dispatch(
-  [ -where =>  -or =>
-      [ '>', [-name => qw/me id/], [-value => 500 ] ],
-      [ '==', [-name => qw/me name/], [-value => '200' ] ],
-  ]
-), "WHERE me.id > ? OR me.name = ?", "where clause";
-
-
-is $sqla->dispatch(
-  [ -where =>  -or =>
-      [ '>', [-name => qw/me id/], [-value => 500 ] ],
-      [ -or => 
-        [ '==', [-name => qw/me name/], [-value => '200' ] ],
-        [ '==', [-name => qw/me name/], [-value => '100' ] ]
-      ]
-  ]
-), "WHERE me.id > ? OR me.name = ? OR me.name = ?", "where clause";
-
-is $sqla->dispatch(
-  [ -where =>  -or =>
-      [ '==', [-name => qw/me id/], [-value => 500 ] ],
-      [ -and => 
-        [ '>', [-name => qw/me name/], [-value => '200' ] ],
-        [ '<', [-name => qw/me name/], [-value => '100' ] ]
-      ]
-  ]
-), "WHERE me.id = ? OR me.name > ? AND me.name < ?", "where clause";
-
-is $sqla->dispatch(
-  [ -where =>  -and =>
-      [ '==', [-name => qw/me id/], [-value => 500 ] ],
-      [ -and => 
-        [ '>', [-name => qw/me name/], [-value => '200' ] ],
-        [ '<', [-name => qw/me name/], [-value => '100' ] ]
-      ]
-  ]
-), "WHERE me.id = ? AND me.name > ? AND me.name < ?", "where clause";
-
-
-is $sqla->dispatch(
-  [ -where =>  -and =>
-      [ '==', [-name => qw/me id/], [-value => 500 ] ],
-      [ -or => 
-        [ '>', [-name => qw/me name/], [-value => '200' ] ],
-        [ '<', [-name => qw/me name/], [-value => '100' ] ]
-      ]
-  ]
-), "WHERE me.id = ? AND (me.name > ? OR me.name < ?)", "where clause";
-
-eq_or_diff(
-  [SQL::Abstract->generate(
-    [ -ast_version => 1,
-      -where =>
-      [ -in => 
-        [-name => qw/me id/],
-        [-value => '100' ],
-        [-value => '200' ],
-        [-value => '300' ],
-      ]
-    ]
-  ) ],
-
-  [ "WHERE me.id IN (?, ?, ?)", 
-    [ qw/100 200 300/]
-  ],
-  
-  "where IN clause");

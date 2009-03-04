@@ -12,12 +12,12 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
   clean;
 
-  method dispatch (ArrayRef $ast) {
-
-    local $_ = $ast->[0];
-    s/^-/_/g or croak "Unknown type tag '$_'";
-    my $meth = $self->can($_) || \&_generic_func;
-    return $meth->($self, $ast);
+  override _build_where_dispatch_table {
+    return { 
+      %{super()},
+      -in => $self->can('_in'),
+      -not_in => $self->can('_in')
+    };
   }
 
   method _select(ArrayRef $ast) {
@@ -98,16 +98,17 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       shift @$clauses;
     }
 
+    my $dispatch_table = $self->where_dispatch_table;
+
     my @output;
     foreach (@$clauses) {
       croak "invalid component in where clause" unless ArrayRef->check($_);
       my $op = $_->[0];
 
-      unless (substr($op, 0, 1) eq '-') {
-        # A simple comparison op (==, >, etc.)
+      if (my $code = $dispatch_table->{$op}) { 
         
-        push @output, $self->_binop(@$_);
-        
+        push @output, $code->($self, $_);
+
       } elsif ($op =~ /^-(and|or)$/) {
         my $sub_prio = $SQL::Abstract::PRIO{$1}; 
 
@@ -117,26 +118,44 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
           push @output, '(' . $self->_recurse_where($_) . ')';
         }
       } else {
-        push @output, $self->dispatch($_);
+        croak "Unknown where clause '$op'";
       }
     }
 
     return join(" $OP ", @output);
   }
 
-  method _binop($op, $lhs, $rhs) {
+  method _binop($ast) {
+    my ($op, $lhs, $rhs) = @$ast;
+
     join (' ', $self->dispatch($lhs), 
-               $SQL::Abstract::OP_MAP{$op} || croak("Unknown binary operator $op"),
+               $self->binop_mapping($op) || croak("Unknown binary operator $op"),
                $self->dispatch($rhs)
     );
   }
 
   method _in($ast) {
-    my (undef, $field, @values) = @$ast;
+    my ($tag, $field, @values) = @$ast;
+
+    my $not = $tag =~ /^-not/ ? " NOT" : "";
 
     return $self->_false if @values == 0;
     return $self->dispatch($field) .
+           $not. 
            " IN (" .
+           join(", ", map { $self->dispatch($_) } @values ) .
+           ")";
+  }
+
+  method _like($ast) {
+    my ($tag, $field, @values) = @$ast;
+
+    my $not = $tag =~ /^-not/ ? " NOT" : "";
+
+    return $self->_false if @values == 0;
+    return $self->dispatch($field) .
+           $not. 
+           " LIKE (" .
            join(", ", map { $self->dispatch($_) } @values ) .
            ")";
   }

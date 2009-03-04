@@ -8,7 +8,7 @@ class SQL::Abstract {
 
   use Moose::Util::TypeConstraints;
   use MooseX::Types -declare => [qw/NameSeparator/];
-  use MooseX::Types::Moose qw/ArrayRef Str Int/;
+  use MooseX::Types::Moose qw/ArrayRef Str Int HashRef/;
   use MooseX::AttributeHelpers;
 
   clean;
@@ -30,12 +30,41 @@ class SQL::Abstract {
     or  => 50
   );
 
-  our %OP_MAP = (
+  our %BINOP_MAP = (
     '>' => '>',
     '<' => '<',
     '==' => '=',
     '!=' => '!=',
+    # LIKE is always "field LIKE <value>"
+    '-like' => 'IN',
+    '-not_like' => 'NOT LIKE',
   );
+
+  has where_dispatch_table => (
+    is => 'ro',
+    lazy_build => 1,
+  );
+
+  has binop_map => (
+    is => 'ro',
+    lazy_build => 1,
+    isa => HashRef,
+    metaclass => 'Collection::ImmutableHash',
+    provides => {
+      exists => 'is_valid_binop',
+      get => 'binop_mapping',
+      keys => 'binary_operators'
+    }
+  );
+
+  sub _build_binop_map { return {%BINOP_MAP} };
+
+  method _build_where_dispatch_table {
+    my $binop = $self->can('_binop');
+    return {
+      map { $_ => $binop } $self->binary_operators
+    }
+  }
 
   has ast_version => (
     is => 'ro',
@@ -61,11 +90,12 @@ class SQL::Abstract {
   has binds => (
     isa => ArrayRef,
     is => 'ro',
+    clearer => '_clear_binds',
+    lazy => 1,
     default => sub { [ ] },
     metaclass => 'Collection::Array',
     provides => {
       push => 'add_bind',
-      clear => '_clear_binds',
     }
   );
 
@@ -93,5 +123,17 @@ class SQL::Abstract {
     return ($self->dispatch($ast), $self->binds);
   }
 
+  method reset() {
+    $self->_clear_binds();
+  }
+
+  method dispatch (ArrayRef $ast) {
+
+    local $_ = $ast->[0];
+    s/^-/_/ or croak "Unknown type tag '$_'";
+    
+    my $meth = $self->can($_) || croak "Unknown tag '$_'";
+    return $meth->($self, $ast);
+  }
 
 };
