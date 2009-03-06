@@ -68,7 +68,16 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   }
 
   method _join(ArrayRef $ast) {
-    
+    my (undef, @items) = @$ast;
+  
+    croak "invalid component in JOIN: $_" unless ArrayRef->check($items[0]);
+    my @output = 'JOIN';
+
+    # TODO: Validation of inputs
+    return 'JOIN '. $self->dispatch(shift @items) .
+                  ' ON (' .
+                  $self->_recurse_where( \@items ) . ')';
+      
   }
 
   method _list(ArrayRef $ast) {
