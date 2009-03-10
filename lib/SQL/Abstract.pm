@@ -10,7 +10,7 @@ class SQL::Abstract {
   use MooseX::Types -declare => [qw/NameSeparator/];
   use MooseX::Types::Moose qw/ArrayRef Str Int HashRef CodeRef/;
   use MooseX::AttributeHelpers;
-  use SQL::Abstract::Types qw/NameSeparator AST ArrayAST/;
+  use SQL::Abstract::Types qw/NameSeparator QuoteChars AST ArrayAST/;
 
   clean;
 
@@ -77,7 +77,7 @@ class SQL::Abstract {
   has name_separator => ( 
     is => 'rw', 
     isa => NameSeparator,
-    default => sub { ['.'] },
+    default => '.',
     coerece => 1,
     required => 1,
   );
@@ -87,6 +87,14 @@ class SQL::Abstract {
     isa => Str,
     default => ', ',
     required => 1,
+  );
+
+  has quote_chars => (
+    is => 'rw', 
+    isa => QuoteChars,
+    coerece => 1,
+    predicate => 'is_quoting',
+    clearer => 'disable_quoting', 
   );
 
   has binds => (

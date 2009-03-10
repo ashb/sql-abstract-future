@@ -1,7 +1,7 @@
 use MooseX::Declare;
 class SQL::Abstract::Types {
   use Moose::Util::TypeConstraints;
-  use MooseX::Types -declare => [qw/NameSeparator AST ArrayAST HashAST/];
+  use MooseX::Types -declare => [qw/NameSeparator QuoteChars AST ArrayAST HashAST/];
   use MooseX::Types::Moose qw/ArrayRef Str Int Ref HashRef/;
 
   subtype ArrayAST, as ArrayRef,
@@ -15,11 +15,16 @@ class SQL::Abstract::Types {
   subtype AST, as ArrayAST|HashAST; 
 
   subtype NameSeparator,
-    as ArrayRef[Str];
-    #where { @$_ == 1 ||| @$_ == 2 },
-    #message { "Name separator must be one or two elements" };
+    as Str,
+    where { length($_) == 1 };
 
-  coerce NameSeparator, from Str, via { [ $_ ] };
+
+  subtype QuoteChars,
+    as ArrayRef[Str];
+    where { @$_ == 1 || @$_ == 2 },
+    message { "Quote characters must be one or two elements" };
+
+  coerce QuoteChars, from Str, via { [ split //, $_ ] };
 
 }
 

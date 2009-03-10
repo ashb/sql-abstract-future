@@ -28,7 +28,36 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   }
 
   method _select(HashAST $ast) {
-    
+    # Default to requiring columns and from
+    # Once TCs give better errors, make this a SelectAST type
+    for (qw/columns from/) {
+      confess "$_ key is required (and must be an AST) to select"
+        unless is_ArrayAST($ast->{$_});
+    }
+   
+    # Check that columns is a -list
+    confess "columns key should be a -list AST, not " . $ast->{columns}[0]
+      unless $ast->{columns}[0] eq '-list';
+
+    my @output = (
+      "SELECT", 
+      $self->dispatch($ast->{columns}),
+      "FROM",
+      $self->dispatch($ast->{from})
+    );
+
+    for (qw/join/) {
+      if (exists $ast->{$_}) {
+        my $sub_ast = $ast->{$_};
+        $sub_ast->{-type} = "$_" if is_HashRef($sub_ast);
+        confess "$_ option is not an AST"
+          unless is_AST($sub_ast);
+
+        push @output, $self->dispatch($sub_ast);
+      }
+    }
+
+    return join(' ', @output);
   }
 
   method _where(ArrayAST $ast) {
@@ -58,16 +87,28 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     my (undef, @names) = @$ast;
 
     my $sep = $self->name_separator;
+    my $quote = $self->is_quoting 
+              ? $self->quote_chars
+              : [ '' ];
 
-    return $sep->[0] . 
-           join( $sep->[1] . $sep->[0], @names ) . 
-           $sep->[1]
-              if (@$sep > 1);
+    my $join = $quote->[-1] . $sep . $quote->[0];
 
-    return join($sep->[0], @names);
+    # We dont want to quote * in [qw/me */]: `me`.* is the desired output there
+    # This means you can't have a field called `*`. I am willing to accept this
+    # situation, cos thats a really stupid thing to want.
+    my $post;
+    $post = pop @names if $names[-1] eq '*';
+
+    my $ret = 
+      $quote->[0] . 
+      join( $join, @names ) . 
+      $quote->[-1];
+
+    $ret .= $sep . $post if defined $post;
+    return $ret;
   }
 
-  method _join(HashAST $ast) {
+  method _join(HashRef $ast) {
   
     my $output = 'JOIN ' . $self->dispatch($ast->{tablespec});
 
@@ -91,6 +132,10 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   method _alias(ArrayAST $ast) {
     my (undef, $alias, $as) = @$ast;
 
+    confess "Not enough paremeters to -alias"
+      unless defined $as;
+
+    # TODO: Maybe we want qq{ AS "$as"} here
     return $self->dispatch($alias) . " AS $as";
 
   }
