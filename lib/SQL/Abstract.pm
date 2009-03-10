@@ -10,15 +10,9 @@ class SQL::Abstract {
   use MooseX::Types -declare => [qw/NameSeparator/];
   use MooseX::Types::Moose qw/ArrayRef Str Int HashRef CodeRef/;
   use MooseX::AttributeHelpers;
+  use SQL::Abstract::Types qw/NameSeparator AST ArrayAST/;
 
   clean;
-
-  subtype NameSeparator,
-    as ArrayRef[Str];
-    #where { @$_ == 1 ||| @$_ == 2 },
-    #message { "Name separator must be one or two elements" };
-
-  coerce NameSeparator, from Str, via { [ $_ ] };
 
   our $VERSION = '2.000000';
 
@@ -116,7 +110,7 @@ class SQL::Abstract {
   }
 
   # Main entry point
-  method generate(ClassName $class: ArrayRef $ast) {
+  method generate(ClassName $class: AST $ast) {
     croak "SQL::Abstract AST version not specified"
       unless ($ast->[0] eq '-ast_version');
 
@@ -132,12 +126,16 @@ class SQL::Abstract {
     $self->_clear_binds();
   }
 
-  method dispatch (ArrayRef $ast) {
-
-    local $_ = $ast->[0];
-    s/^-/_/ or croak "Unknown type tag '$_'";
+  method dispatch (AST $ast) {
+    # I want multi methods!
+    my $tag;
+    if (is_ArrayAST($ast)) {
+      ($tag = $ast->[0]) =~ s/^-/_/;
+    } else {
+      $tag = "_" . $ast->{-type};
+    }
     
-    my $meth = $self->can($_) || croak "Unknown tag '$_'";
+    my $meth = $self->can($tag) || croak "Unknown tag '$tag'";
     return $meth->($self, $ast);
   }
 

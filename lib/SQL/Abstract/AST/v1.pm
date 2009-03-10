@@ -6,9 +6,9 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   use Data::Dump qw/pp/;
 
   use Moose::Util::TypeConstraints;
-  use MooseX::Types -declare => [qw/NameSeparator/];
-  use MooseX::Types::Moose qw/ArrayRef Str Int/;
+  use MooseX::Types::Moose qw/ArrayRef Str Int Ref HashRef/;
   use MooseX::AttributeHelpers;
+  use SQL::Abstract::Types qw/AST ArrayAST HashAST/;
 
   clean;
 
@@ -27,17 +27,17 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     };
   }
 
-  method _select(ArrayRef $ast) {
+  method _select(HashAST $ast) {
     
   }
 
-  method _where(ArrayRef $ast) {
+  method _where(ArrayAST $ast) {
     my (undef, @clauses) = @$ast;
   
     return 'WHERE ' . $self->_recurse_where(\@clauses);
   }
 
-  method _order_by(ArrayRef $ast) {
+  method _order_by(ArrayAST $ast) {
     my (undef, @clauses) = @$ast;
 
     my @output;
@@ -54,7 +54,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return "ORDER BY " . join(", ", @output);
   }
 
-  method _name(ArrayRef $ast) {
+  method _name(ArrayAST $ast) {
     my (undef, @names) = @$ast;
 
     my $sep = $self->name_separator;
@@ -67,20 +67,20 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return join($sep->[0], @names);
   }
 
-  method _join(ArrayRef $ast) {
-    my (undef, @items) = @$ast;
+  method _join(HashAST $ast) {
   
-    croak "invalid component in JOIN: $_" unless ArrayRef->check($items[0]);
-    my @output = 'JOIN';
+    my $output = 'JOIN ' . $self->dispatch($ast->{tablespec});
 
-    # TODO: Validation of inputs
-    return 'JOIN '. $self->dispatch(shift @items) .
-                  ' ON (' .
-                  $self->_recurse_where( \@items ) . ')';
+    $output .= exists $ast->{on}
+             ? ' ON (' . $self->_recurse_where( $ast->{on} )
+             : ' USING (' .$self->dispatch($ast->{using} || croak "No 'on' or 'join' clause passed to -join");
+
+    $output .= ")";
+    return $output;
       
   }
 
-  method _list(ArrayRef $ast) {
+  method _list(ArrayAST $ast) {
     my (undef, @items) = @$ast;
 
     return join(
@@ -88,37 +88,41 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       map { $self->dispatch($_) } @items);
   }
 
-  method _alias(ArrayRef $ast) {
+  method _alias(ArrayAST $ast) {
     my (undef, $alias, $as) = @$ast;
 
     return $self->dispatch($alias) . " AS $as";
 
   }
 
-  method _value(ArrayRef $ast) {
+  method _value(ArrayAST $ast) {
     my ($undef, $value) = @$ast;
 
     $self->add_bind($value);
     return "?";
   }
 
-  method _recurse_where($clauses) {
+  method _recurse_where(ArrayRef $clauses) {
 
     my $OP = 'AND';
     my $prio = $SQL::Abstract::PRIO{and};
     my $first = $clauses->[0];
 
-    if (!ref $first && $first =~ /^-(and|or)$/) {
-      $OP = uc($1);
-      $prio = $SQL::Abstract::PRIO{$1};
-      shift @$clauses;
+    if (!ref $first) {
+      if ($first =~ /^-(and|or)$/) {
+        $OP = uc($1);
+        $prio = $SQL::Abstract::PRIO{$1};
+        shift @$clauses;
+      } else {
+        $clauses = [ $clauses ];
+      }
     }
 
     my $dispatch_table = $self->where_dispatch_table;
 
     my @output;
     foreach (@$clauses) {
-      croak "invalid component in where clause: $_" unless ArrayRef->check($_);
+      croak "invalid component in where clause: $_" unless is_ArrayRef($_);
       my $op = $_->[0];
 
       if ($op =~ /^-(and|or)$/) {
@@ -137,7 +141,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return join(" $OP ", @output);
   }
 
-  method _where_component($ast) {
+  method _where_component(ArrayRef $ast) {
     my $op = $ast->[0];
 
     if (my $code = $self->lookup_where_dispatch($op)) { 
@@ -153,7 +157,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   }
 
 
-  method _binop($ast) {
+  method _binop(ArrayRef $ast) {
     my ($op, $lhs, $rhs) = @$ast;
 
     join (' ', $self->_where_component($lhs), 
@@ -162,7 +166,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     );
   }
 
-  method _in($ast) {
+  method _in(ArrayAST $ast) {
     my ($tag, $field, @values) = @$ast;
 
     my $not = $tag =~ /^-not/ ? " NOT" : "";
@@ -173,19 +177,6 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
            " IN (" .
            join(", ", map { $self->dispatch($_) } @values ) .
            ")";
-  }
-
-  method _like($ast) {
-    my ($tag, $field, @values) = @$ast;
-
-    my $not = $tag =~ /^-not/ ? " NOT" : "";
-
-    return $self->_false if @values == 0;
-    return $self->_where_component($field) .
-           $not. 
-           " LIKE " .
-           join(", ", map { $self->_where_component($_) } @values ) .
-           "";
   }
 
   method _generic_func(ArrayRef $ast) {
