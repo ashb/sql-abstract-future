@@ -36,7 +36,8 @@ class SQL::Abstract {
 
   has where_dispatch_table => (
     is => 'ro',
-    lazy_build => 1,
+    lazy => 1,
+    builder => '_build_where_dispatch_table',
     isa => HashRef[CodeRef],
     metaclass => 'Collection::ImmutableHash',
     provides => {
@@ -46,7 +47,8 @@ class SQL::Abstract {
 
   has binop_map => (
     is => 'ro',
-    lazy_build => 1,
+    lazy => 1,
+    builder => '_build_binops',
     isa => HashRef,
     metaclass => 'Collection::ImmutableHash',
     provides => {
@@ -56,7 +58,8 @@ class SQL::Abstract {
     }
   );
 
-  sub _build_binop_map { return {%BINOP_MAP} };
+  # List of default binary operators (for in where clauses)
+  sub _build_binops { return {%BINOP_MAP} };
 
   method _build_where_dispatch_table {
     my $binop = $self->can('_binop') or croak "InternalError: $self can't do _binop!";
