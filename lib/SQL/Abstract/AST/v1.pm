@@ -114,6 +114,8 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
         $prio = $SQL::Abstract::PRIO{$1};
         shift @$clauses;
       } else {
+        # If first is not a ref, and its not -and or -or, then $clauses
+        # contains just a single clause
         $clauses = [ $clauses ];
       }
     }
