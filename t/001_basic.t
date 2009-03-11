@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 11;
+use Test::More tests => 8;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -9,59 +9,43 @@ use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 my $sqla = SQL::Abstract->create(1);
 
 # TODO: once MXMS supports %args, use that here
-is $sqla->dispatch( [ -name => qw/me id/]), "me.id",
+is $sqla->dispatch( { -type => 'name', args => [qw/me id/] }), "me.id",
   "Simple name generator";
 
-is $sqla->dispatch( [ -name => qw/me */]), 
+is $sqla->dispatch( { -type => 'name', args => [qw/me */]}),
    "me.*",
    "Simple name generator";
 
 $sqla->quote_chars(['`']);
 
-is $sqla->dispatch( [ -name => qw/me */]), 
+is $sqla->dispatch( { -type => 'name', args => [qw/me */]}),
    "`me`.*",
    "Simple name generator";
 
 $sqla->disable_quoting;
 
 is $sqla->dispatch(
-  [ '-false' ]
+  { -type => 'false' }
 ), "0 = 1", "false value";
 
 is $sqla->dispatch(
-  [ '-true' ]
+  { -type => 'true' }
 ), "1 = 1", "true value";
 
 is $sqla->dispatch(
-  [ -list => 
-    [ -name => qw/me id/],
-    [ -name => qw/me foo bar/],
-    [ -name => qw/bar/]
-  ] 
+  { -type => 'list',
+    args => [
+      { -type => name => args => [qw/me id/] },
+      { -type => name => args => [qw/me foo bar/] },
+      { -type => name => args => [qw/bar/] }
+    ] 
+  }
 ), "me.id, me.foo.bar, bar",
   "List generator";
 
 is $sqla->dispatch(
-  [ -alias => [ -name => qw/me id/], "foobar", ] 
+  { -type => 'alias', ident => { -type => name => args => [qw/me id/]}, as => "foobar" } 
 ), "me.id AS foobar",
   "Alias generator";
-
-is $sqla->dispatch(
-  [ -order_by => [ -name => qw/me date/ ] ]
-), "ORDER BY me.date",
-   "order by";
-
-is $sqla->dispatch(
-  [ -order_by => 
-    [ -name => qw/me date/ ],
-    [ -name => qw/me foobar/ ],
-  ]
-), "ORDER BY me.date, me.foobar",
-   "order by";
-
-is $sqla->dispatch(
-  [ -order_by => [ -desc => [ -name => qw/me date/ ] ] ]
-), "ORDER BY me.date DESC",
-   "order by desc";
 
 

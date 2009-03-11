@@ -66,13 +66,13 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return 'WHERE ' . $self->_recurse_where(\@clauses);
   }
 
-  method _order_by(ArrayAST $ast) {
-    my (undef, @clauses) = @$ast;
-
+  method _order_by(AST $ast) {
+    my @clauses = @{$ast->{order_by}};
+  
     my @output;
    
     for (@clauses) {
-      if ($_->[0] =~ /^-(asc|desc)$/) {
+      if (is_ArrayRef($_) && $_->[0] =~ /^-(asc|desc)$/) {
         my $o = $1;
         push @output, $self->dispatch($_->[1]) . " " . uc($o);
         next;
@@ -83,8 +83,8 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return "ORDER BY " . join(", ", @output);
   }
 
-  method _name(ArrayAST $ast) {
-    my (undef, @names) = @$ast;
+  method _name(AST $ast) {
+    my @names = @{$ast->{args}};
 
     my $sep = $self->name_separator;
     my $quote = $self->is_quoting 
@@ -121,22 +121,18 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       
   }
 
-  method _list(ArrayAST $ast) {
-    my (undef, @items) = @$ast;
+  method _list(AST $ast) {
+    my @items = @{$ast->{args}};
 
     return join(
       $self->list_separator,
       map { $self->dispatch($_) } @items);
   }
 
-  method _alias(ArrayAST $ast) {
-    my (undef, $alias, $as) = @$ast;
-
-    confess "Not enough paremeters to -alias"
-      unless defined $as;
-
+  method _alias(AST $ast) {
+    
     # TODO: Maybe we want qq{ AS "$as"} here
-    return $self->dispatch($alias) . " AS $as";
+    return $self->dispatch($ast->{ident}) . " AS " . $ast->{as};
 
   }
 
