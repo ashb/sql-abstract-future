@@ -10,7 +10,7 @@ class SQL::Abstract {
   use MooseX::Types -declare => [qw/NameSeparator/];
   use MooseX::Types::Moose qw/ArrayRef Str Int HashRef CodeRef/;
   use MooseX::AttributeHelpers;
-  use SQL::Abstract::Types qw/NameSeparator QuoteChars AST ArrayAST/;
+  use SQL::Abstract::Types qw/NameSeparator QuoteChars AST HashAST ArrayAST/;
 
   clean;
 
@@ -121,11 +121,10 @@ class SQL::Abstract {
   }
 
   # Main entry point
-  method generate(ClassName $class: AST $ast) {
+  method generate(ClassName $class: HashAST $ast) {
+    my $ver = $ast->{-ast_version};
     croak "SQL::Abstract AST version not specified"
-      unless ($ast->[0] eq '-ast_version');
-
-    my (undef, $ver) = splice(@$ast, 0, 2);
+      unless defined $ver;
 
     # TODO: once MXMS supports %args, use that here
     my $self = $class->create($ver);

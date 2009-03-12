@@ -18,6 +18,8 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       %{super()},
       in => $self->can('_in'),
       not_in => $self->can('_in'),
+      and => $self->can('_recurse_where'),
+      or => $self->can('_recurse_where'),
       map { +"$_" => $self->can("_$_") } qw/
         value
         name
@@ -142,28 +144,17 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return "?";
   }
 
-  method _recurse_where(ArrayRef $clauses) {
+  method _recurse_where(HashAST $ast) {
 
-    my $OP = 'AND';
-    my $prio = $SQL::Abstract::PRIO{and};
-    my $first = $clauses->[0];
+    my $op = $ast->{op};
 
-    if (!ref $first) {
-      if ($first =~ /^-(and|or)$/) {
-        $OP = uc($1);
-        $prio = $SQL::Abstract::PRIO{$1};
-        shift @$clauses;
-      } else {
-        # If first is not a ref, and its not -and or -or, then $clauses
-        # contains just a single clause
-        $clauses = [ $clauses ];
-      }
-    }
+    my $OP = uc $op;
+    my $prio = $SQL::Abstract::PRIO{$op};
 
     my $dispatch_table = $self->where_dispatch_table;
 
     my @output;
-    foreach (@$clauses) {
+    foreach ( @{$ast->{args}} ) {
       croak "invalid component in where clause: $_" unless is_ArrayRef($_);
       my $op = $_->[0];
 
@@ -215,16 +206,18 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     );
   }
 
-  method _in(ArrayAST $ast) {
-    my ($tag, $field, @values) = @$ast;
+  method _in(HashAST $ast) {
+  
+    my ($field,$values) = @{$ast->{args}};
 
-    my $not = $tag =~ /^-not/ ? " NOT" : "";
+    my $not = ($ast->{op} =~ /^-not/) ? " NOT" : "";
 
-    return $self->_false if @values == 0;
+    return $self->_false if !defined $values || @$values == 0;
+
     return $self->_where_component($field) .
            $not. 
            " IN (" .
-           join(", ", map { $self->dispatch($_) } @values ) .
+           join(", ", map { $self->dispatch($_) } @$values ) .
            ")";
   }
 

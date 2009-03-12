@@ -18,32 +18,59 @@ is $sqla->dispatch(
   }
 ), "me.id > ?", 
    "simple where clause";
-__END__
+
 is $sqla->dispatch(
-  [ -in => [  ] ]
+  { -type => 'expr', op => 'in', args => [  ] }
 ), "0 = 1", "emtpy -in";
 
 is $sqla->dispatch(
-  [ -where =>
-      [ '>', [-name => qw/me id/], [-value => 500 ] ]
-  ]
-), "WHERE me.id > ?", 
-   "simple where clause";
+  { -type => 'expr', 
+    op => 'in', 
+    args => [ { -type => 'name', args => ['foo'] } ],
+  }
+), "0 = 1", "emtpy -in";
+
+is $sqla->dispatch(
+  { -type => 'expr',
+    op => '>',
+    args => [
+      {-type => 'name', args => [qw/me id/]}, 
+      {-type => 'value', value => 500 }
+    ]
+  }
+), "me.id > ?", 
+   "simple expr clause";
 
 eq_or_diff( [ SQL::Abstract->generate(
-    [ -ast_version => 1,
-      -where =>
-        [ '>', [-name => qw/me id/], [-value => 500 ] ],
-        [ '==', [-name => qw/me name/], [-value => '200' ] ]
-    ]
+    { -ast_version => 1,
+      -type => 'expr',
+      op => 'and',
+      args => [
+        { -type => 'expr',
+          op => '>',
+          args => [
+            {-type => 'name', args => [qw/me id/]}, 
+            {-type => 'value', value => 500 }
+          ]
+        },
+        { -type => 'expr',
+          op => '==',
+          args => [
+            {-type => 'name', args => [qw/me name/]}, 
+            {-type => 'value', value => '200' }
+          ]
+        },
+      ]
+    }
   ) ], 
-  [ "WHERE me.id > ? AND me.name = ?",
+  [ "me.id > ? AND me.name = ?",
     [ 500,
       '200'
     ]
   ],
   "Where with binds"
 );
+__END__
 
 
 is $sqla->dispatch(
