@@ -16,9 +16,9 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   override _build_where_dispatch_table {
     return { 
       %{super()},
-      -in => $self->can('_in'),
-      -not_in => $self->can('_in'),
-      map { +"-$_" => $self->can("_$_") } qw/
+      in => $self->can('_in'),
+      not_in => $self->can('_in'),
+      map { +"$_" => $self->can("_$_") } qw/
         value
         name
         true
@@ -136,10 +136,9 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
   }
 
-  method _value(ArrayAST $ast) {
-    my ($undef, $value) = @$ast;
+  method _value(HashAST $ast) {
 
-    $self->add_bind($value);
+    $self->add_bind($ast->{value});
     return "?";
   }
 
@@ -184,8 +183,8 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return join(" $OP ", @output);
   }
 
-  method _where_component(ArrayRef $ast) {
-    my $op = $ast->[0];
+  method _where_component(HashAST $ast) {
+    my $op = $ast->{-type};
 
     if (my $code = $self->lookup_where_dispatch($op)) { 
       
@@ -199,9 +198,16 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
    
   }
 
+  method _expr(HashAST $ast) {
+    my $op = $ast->{op};
+    my $meth = $self->lookup_where_dispatch($op) || confess "Invalid operator '$op'";
+   
+    $meth->($self, $ast);
+  }
 
-  method _binop(ArrayRef $ast) {
-    my ($op, $lhs, $rhs) = @$ast;
+  method _binop(HashAST $ast) {
+    my ($lhs, $rhs) = @{$ast->{args}};
+    my $op = $ast->{op};
 
     join (' ', $self->_where_component($lhs), 
                $self->binop_mapping($op) || croak("Unknown binary operator $op"),

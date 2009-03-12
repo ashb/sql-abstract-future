@@ -30,7 +30,7 @@ class SQL::Abstract {
     '==' => '=',
     '!=' => '!=',
     # LIKE is always "field LIKE <value>"
-    '-like' => 'IN',
+    '-like' => 'LIKE',
     '-not_like' => 'NOT LIKE',
   );
 

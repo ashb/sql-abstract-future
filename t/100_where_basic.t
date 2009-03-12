@@ -9,12 +9,16 @@ use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 my $sqla = SQL::Abstract->create(1);
 
 is $sqla->dispatch(
-  [ -where =>
-      [ '>', [-name => qw/me id/], [-value => 500 ] ]
-  ]
-), "WHERE me.id > ?", 
+  { -type => 'expr',
+    op => '>',
+    args => [
+      {-type => name => args => [qw/me id/] }, 
+      { -type => 'value', value => 500 }
+    ]
+  }
+), "me.id > ?", 
    "simple where clause";
-
+__END__
 is $sqla->dispatch(
   [ -in => [  ] ]
 ), "0 = 1", "emtpy -in";
