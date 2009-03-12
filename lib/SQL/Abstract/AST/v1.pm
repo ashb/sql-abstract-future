@@ -25,6 +25,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
         name
         true
         false
+        expr
       /
     };
   }
@@ -155,10 +156,9 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
     my @output;
     foreach ( @{$ast->{args}} ) {
-      croak "invalid component in where clause: $_" unless is_ArrayRef($_);
-      my $op = $_->[0];
+      croak "invalid component in where clause: $_" unless is_HashAST($_);
 
-      if ($op =~ /^-(and|or)$/) {
+      if ($_->{-type} eq 'expr' && $_->{op} =~ /^-(and|or)$/) {
         my $sub_prio = $SQL::Abstract::PRIO{$1}; 
 
         if ($sub_prio <= $prio) {
@@ -185,7 +185,8 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     croak "'$op' is not a valid clause in a where AST"
       if $op =~ /^-/;
 
-    croak "'$op' is not a valid operator";
+    use Devel::PartialDump qw/dump/;
+    croak "'$op' is not a valid operator in " . dump($ast);
    
   }
 

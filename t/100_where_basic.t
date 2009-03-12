@@ -41,26 +41,28 @@ is $sqla->dispatch(
 ), "me.id > ?", 
    "simple expr clause";
 
+my $cols = [
+  { -type => 'expr',
+    op => '>',
+    args => [
+      {-type => 'name', args => [qw/me id/]}, 
+      {-type => 'value', value => 500 }
+    ]
+  },
+  { -type => 'expr',
+    op => '==',
+    args => [
+      {-type => 'name', args => [qw/me name/]}, 
+      {-type => 'value', value => '200' }
+    ]
+  },
+];
+
 eq_or_diff( [ SQL::Abstract->generate(
     { -ast_version => 1,
       -type => 'expr',
       op => 'and',
-      args => [
-        { -type => 'expr',
-          op => '>',
-          args => [
-            {-type => 'name', args => [qw/me id/]}, 
-            {-type => 'value', value => 500 }
-          ]
-        },
-        { -type => 'expr',
-          op => '==',
-          args => [
-            {-type => 'name', args => [qw/me name/]}, 
-            {-type => 'value', value => '200' }
-          ]
-        },
-      ]
+      args => $cols,
     }
   ) ], 
   [ "me.id > ? AND me.name = ?",
@@ -70,40 +72,39 @@ eq_or_diff( [ SQL::Abstract->generate(
   ],
   "Where with binds"
 );
-__END__
 
 
 is $sqla->dispatch(
-  [ -where =>  -or =>
-      [ '>', [-name => qw/me id/], [-value => 500 ] ],
-      [ '==', [-name => qw/me name/], [-value => '200' ] ],
-  ]
-), "WHERE me.id > ? OR me.name = ?", 
+  { -type => 'expr',  op => 'or', args => $cols }
+), "me.id > ? OR me.name = ?", 
    "where clause (simple or)";
 
 
 is $sqla->dispatch(
-  [ -where =>  -or =>
-      [ '>', [-name => qw/me id/], [-value => 500 ] ],
-      [ -or => 
-        [ '==', [-name => qw/me name/], [-value => '200' ] ],
-        [ '==', [-name => qw/me name/], [-value => '100' ] ]
-      ]
-  ]
-), "WHERE me.id > ? OR me.name = ? OR me.name = ?",
+  { -type => 'expr', op => 'or',
+    args => [
+      { -type => 'expr', op => '==', 
+        args => [ {-type => 'name', args => [qw/me name/] }, {-type => 'value', value => 500 } ]
+      },
+      { -type => 'expr', op => 'or', args => $cols }
+    ]
+  }
+), "me.name = ? OR me.id > ? OR me.name = ?",
    "where clause (nested or)";
 
 is $sqla->dispatch(
-  [ -where =>  -or =>
-      [ '==', [-name => qw/me id/], [-value => 500 ] ],
-      [ -and => 
-        [ '>', [-name => qw/me name/], [-value => '200' ] ],
-        [ '<', [-name => qw/me name/], [-value => '100' ] ]
-      ]
-  ]
-), "WHERE me.id = ? OR me.name > ? AND me.name < ?", 
+  { -type => 'expr', op => 'or',
+    args => [
+      { -type => 'expr', op => '==', 
+        args => [ {-type => 'name', args => [qw/me name/] }, {-type => 'value', value => 500 } ]
+      },
+      { -type => 'expr', op => 'and', args => $cols }
+    ]
+  }
+), "me.name = ? OR me.id > ? AND me.name = ?", 
    "where clause (inner and)";
 
+__END__
 is $sqla->dispatch(
   [ -where =>  -and =>
       [ '==', [-name => qw/me id/], [-value => 500 ] ],
