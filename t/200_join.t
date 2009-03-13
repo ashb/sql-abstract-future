@@ -10,16 +10,23 @@ my $sqla = SQL::Abstract->create(1);
 
 is $sqla->dispatch(
   { -type => 'join',
-    tablespec => [-name => qw/foo/],
-    on => [ '==', [-name => qw/foo id/], [ -name => qw/me foo_id/ ] ],
+    tablespec => {-type => name => args => [qw/foo/]},
+    on => { 
+      -type => 'expr',
+      op => '==',
+      args => [
+        { -type => 'name', args => [qw/foo id/] },
+        { -type => 'name', args => [qw/me foo_id/] },
+      ]
+    }
   }
 ), "JOIN foo ON (foo.id = me.foo_id)", 
    "simple join clause";
 
 is $sqla->dispatch(
   { -type => 'join',
-    tablespec => [-alias => [-name => qw/foo/], 'bar' ],
-    using => [ -name => qw/foo_id/ ]
+    tablespec => {-type => 'alias', ident => {-type => name => args => [qw/foo/]}, as => 'bar' },
+    using => { -type => 'name', args => [qw/foo_id/] },
   }
 ), "JOIN foo AS bar USING (foo_id)", 
    "using join clause";

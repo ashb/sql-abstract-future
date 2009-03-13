@@ -32,25 +32,29 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   }
 
   method _select(HashAST $ast) {
-    # Default to requiring columns and from
-    # Once TCs give better errors, make this a SelectAST type
-    for (qw/columns from/) {
-      confess "$_ key is required (and must be an AST) to select"
-        unless is_ArrayAST($ast->{$_});
+    # Default to requiring columns and from.
+    # DB specific ones (i.e. mysql/Pg) can not require the FROM part with a bit
+    # of refactoring
+    
+    for (qw/columns tablespec/) {
+      confess "'$_' is required in select AST with " . dump ($ast)
+        unless exists $ast->{$_};
     }
    
     # Check that columns is a -list
-    confess "columns key should be a -list AST, not " . $ast->{columns}[0]
-      unless $ast->{columns}[0] eq '-list';
+    confess "'columns' should be an array ref, not " . dump($ast->{columns})
+      unless is_ArrayRef($ast->{columns});
+
+    my $cols = join ($self->list_separator, map { $self->dispatch($_) } @{ $ast->{columns}});
 
     my @output = (
-      "SELECT", 
-      $self->dispatch($ast->{columns}),
-      "FROM",
-      $self->dispatch($ast->{from})
+      SELECT => $cols
     );
 
-    for (qw/join/) {
+    push @output, FROM => $self->dispatch($ast->{tablespec})
+      if exists $ast->{tablespec};
+
+    for (qw//) {
       if (exists $ast->{$_}) {
         my $sub_ast = $ast->{$_};
         $sub_ast->{-type} = "$_" if is_HashRef($sub_ast);
@@ -87,7 +91,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return "ORDER BY " . join(", ", @output);
   }
 
-  method _name(AST $ast) {
+  method _name(HashAST $ast) {
     my @names = @{$ast->{args}};
 
     my $sep = $self->name_separator;
@@ -117,7 +121,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     my $output = 'JOIN ' . $self->dispatch($ast->{tablespec});
 
     $output .= exists $ast->{on}
-             ? ' ON (' . $self->_recurse_where( $ast->{on} )
+             ? ' ON (' . $self->_expr( $ast->{on} )
              : ' USING (' .$self->dispatch($ast->{using} || croak "No 'on' or 'join' clause passed to -join");
 
     $output .= ")";
@@ -133,6 +137,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       map { $self->dispatch($_) } @items);
   }
 
+  # TODO: I think i want to parameterized AST type to get better validation
   method _alias(AST $ast) {
     
     # TODO: Maybe we want qq{ AS "$as"} here

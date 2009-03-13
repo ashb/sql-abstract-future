@@ -11,6 +11,7 @@ class SQL::Abstract {
   use MooseX::Types::Moose qw/ArrayRef Str Int HashRef CodeRef/;
   use MooseX::AttributeHelpers;
   use SQL::Abstract::Types qw/NameSeparator QuoteChars AST HashAST ArrayAST/;
+  use Devel::PartialDump qw/dump/;
 
   clean;
 
@@ -140,7 +141,7 @@ class SQL::Abstract {
     # I want multi methods!
     my $tag;
     if (is_ArrayAST($ast)) {
-      ($tag = $ast->[0]) =~ s/^-/_/;
+      confess "FIX: " . dump($ast); 
     } else {
       $tag = "_" . $ast->{-type};
     }
