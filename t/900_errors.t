@@ -25,12 +25,3 @@ throws_ok {
   )
 } qr/^'~' is not a valid operator in an expression/
 
-__END__
-throws_ok {
-  $sqla->dispatch(
-    { -where => 
-      [ '~', [-name => qw/me id/], [ -alias => [-name => qw/me foo/], 'bar' ] ]
-    ]
-  )
-} qr/^'~' is not a valid operator/, 
-  "Error from invalid operator in where";
