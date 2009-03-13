@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -17,18 +17,7 @@ is $sqla->dispatch(
     ]
   }
 ), "me.id > ?", 
-   "simple where clause";
-
-is $sqla->dispatch(
-  { -type => 'expr', op => 'in', args => [  ] }
-), "0 = 1", "emtpy -in";
-
-is $sqla->dispatch(
-  { -type => 'expr', 
-    op => 'in', 
-    args => [ { -type => 'name', args => ['foo'] } ],
-  }
-), "0 = 1", "emtpy -in";
+   "simple expr clause";
 
 is $sqla->dispatch(
   { -type => 'expr',
@@ -77,7 +66,7 @@ eq_or_diff( [ SQL::Abstract->generate(
 is $sqla->dispatch(
   { -type => 'expr',  op => 'or', args => $cols }
 ), "me.id > ? OR me.name = ?", 
-   "where clause (simple or)";
+   "expr clause (simple or)";
 
 
 is $sqla->dispatch(
@@ -90,7 +79,7 @@ is $sqla->dispatch(
     ]
   }
 ), "me.name = ? OR me.id > ? OR me.name = ?",
-   "where clause (nested or)";
+   "expr clause (nested or)";
 
 is $sqla->dispatch(
   { -type => 'expr', op => 'or',
@@ -102,67 +91,90 @@ is $sqla->dispatch(
     ]
   }
 ), "me.name = ? OR me.id > ? AND me.name = ?", 
-   "where clause (inner and)";
-
-__END__
-is $sqla->dispatch(
-  [ -where =>  -and =>
-      [ '==', [-name => qw/me id/], [-value => 500 ] ],
-      [ -and => 
-        [ '>', [-name => qw/me name/], [-value => '200' ] ],
-        [ '<', [-name => qw/me name/], [-value => '100' ] ]
-      ]
-  ]
-), "WHERE me.id = ? AND me.name > ? AND me.name < ?", 
-   "where clause (nested and)";
-
+   "expr clause (inner and)";
 
 is $sqla->dispatch(
-  [ -where =>  -and =>
-      [ '==', [-name => qw/me id/], [-value => 500 ] ],
-      [ -or => 
-        [ '>', [-name => qw/me name/], [-value => '200' ] ],
-        [ '<', [-name => qw/me name/], [-value => '100' ] ]
-      ]
-  ]
-), "WHERE me.id = ? AND (me.name > ? OR me.name < ?)", 
-   "where clause (inner or)";
+  { -type => 'expr', op => 'and', args => [
+      { -type => 'expr', op => '==', args => [
+          {-type => 'name', args => [qw/me id/] }, {-type => 'value', value => 200 } 
+        ],
+      },
+      { -type => 'expr', op => 'and', args => $cols }
+    ]
+  }
+), "me.id = ? AND me.id > ? AND me.name = ?", 
+   "expr clause (nested and)";
+
+
+is $sqla->dispatch(
+  { -type => 'expr', op => 'and', args => [
+      { -type => 'expr', op => '==', args => [
+          {-type => 'name', args => [qw/me id/] }, {-type => 'value', value => 200 } 
+        ],
+      },
+      { -type => 'expr', op => 'or', args => $cols }
+    ]
+  }
+), "me.id = ? AND (me.id > ? OR me.name = ?)",
+   "expr clause (inner or)";
+
+is $sqla->dispatch(
+  { -type => 'expr', op => 'in', args => [  ] }
+), "0 = 1", "emtpy -in";
+
+is $sqla->dispatch(
+  { -type => 'expr', 
+    op => 'in', 
+    args => [ { -type => 'name', args => ['foo'] } ],
+  }
+), "0 = 1", "emtpy -in";
 
 eq_or_diff(
   [SQL::Abstract->generate(
-    [ -ast_version => 1,
-      -where =>
-      [ -in => 
-        [-name => qw/me id/],
-        [-value => '100' ],
-        [-value => '200' ],
-        [-value => '300' ],
+    { -ast_version => 1,
+      -type => 'expr',
+      op => 'and',
+      args => [
+        { -type => 'expr',
+          op => 'in',
+          args => [
+            {-type => 'name', args => [qw/me id/] },
+            {-type => 'value', value => 100 },
+            {-type => 'value', value => 200 },
+            {-type => 'value', value => 300 },
+          ]
+        }
       ]
-    ]
+    }
   ) ],
 
-  [ "WHERE me.id IN (?, ?, ?)", 
-    [ qw/100 200 300/]
+  [ "me.id IN (?, ?, ?)", 
+    [ 100, 200, 300 ]
   ],
   
-  "where IN clause");
-
+  "IN expression");
 
 eq_or_diff(
   [SQL::Abstract->generate(
-    [ -ast_version => 1,
-      -where =>
-      [ -not_in => 
-        [-name => qw/me id/],
-        [-value => '100' ],
-        [-value => '200' ],
-        [-value => '300' ],
+    { -ast_version => 1,
+      -type => 'expr',
+      op => 'and',
+      args => [
+        { -type => 'expr',
+          op => 'not_in',
+          args => [
+            {-type => 'name', args => [qw/me id/] },
+            {-type => 'value', value => 100 },
+            {-type => 'value', value => 200 },
+            {-type => 'value', value => 300 },
+          ]
+        }
       ]
-    ]
+    }
   ) ],
 
-  [ "WHERE me.id NOT IN (?, ?, ?)", 
-    [ qw/100 200 300/]
+  [ "me.id NOT IN (?, ?, ?)", 
+    [ 100, 200, 300 ]
   ],
   
-  "where NOT IN clause");
+  "NOT IN clause");

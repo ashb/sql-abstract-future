@@ -158,7 +158,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     foreach ( @{$ast->{args}} ) {
       croak "invalid component in where clause: $_" unless is_HashAST($_);
 
-      if ($_->{-type} eq 'expr' && $_->{op} =~ /^-(and|or)$/) {
+      if ($_->{-type} eq 'expr' && $_->{op} =~ /^(and|or)$/) {
         my $sub_prio = $SQL::Abstract::PRIO{$1}; 
 
         if ($sub_prio <= $prio) {
@@ -182,11 +182,11 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       return $code->($self, $ast);
 
     }
-    croak "'$op' is not a valid clause in a where AST"
+    croak "'$op' is not a valid AST type in an expression"
       if $op =~ /^-/;
 
     use Devel::PartialDump qw/dump/;
-    croak "'$op' is not a valid operator in " . dump($ast);
+    croak "'$op' is not a valid AST type in " . dump($ast);
    
   }
 
@@ -209,16 +209,16 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
   method _in(HashAST $ast) {
   
-    my ($field,$values) = @{$ast->{args}};
+    my ($field,@values) = @{$ast->{args}};
 
-    my $not = ($ast->{op} =~ /^-not/) ? " NOT" : "";
+    my $not = ($ast->{op} =~ /^not_/) ? " NOT" : "";
 
-    return $self->_false if !defined $values || @$values == 0;
+    return $self->_false unless @values;
 
     return $self->_where_component($field) .
-           $not. 
+           $not . 
            " IN (" .
-           join(", ", map { $self->dispatch($_) } @$values ) .
+           join(", ", map { $self->dispatch($_) } @values ) .
            ")";
   }
 
