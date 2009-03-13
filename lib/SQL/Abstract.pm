@@ -34,14 +34,14 @@ class SQL::Abstract {
     '-not_like' => 'NOT LIKE',
   );
 
-  has where_dispatch_table => (
+  has expr_dispatch_table => (
     is => 'ro',
     lazy => 1,
-    builder => '_build_where_dispatch_table',
+    builder => '_build_expr_dispatch_table',
     isa => HashRef[CodeRef],
     metaclass => 'Collection::ImmutableHash',
     provides => {
-      get => 'lookup_where_dispatch'
+      get => 'lookup_expr_dispatch'
     }
   );
 
@@ -61,7 +61,7 @@ class SQL::Abstract {
   # List of default binary operators (for in where clauses)
   sub _build_binops { return {%BINOP_MAP} };
 
-  method _build_where_dispatch_table {
+  method _build_expr_dispatch_table {
     my $binop = $self->can('_binop') or croak "InternalError: $self can't do _binop!";
     return {
       map { $_ => $binop } $self->binary_operators

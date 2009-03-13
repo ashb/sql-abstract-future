@@ -9,11 +9,12 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   use MooseX::Types::Moose qw/ArrayRef Str Int Ref HashRef/;
   use MooseX::AttributeHelpers;
   use SQL::Abstract::Types qw/AST ArrayAST HashAST/;
+  use Devel::PartialDump qw/dump/;
 
   clean;
 
   # set things that are valid in where clauses
-  override _build_where_dispatch_table {
+  override _build_expr_dispatch_table {
     return { 
       %{super()},
       in => $self->can('_in'),
@@ -145,6 +146,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return "?";
   }
 
+  # Perhaps badly named. handles 'and' and 'or' clauses
   method _recurse_where(HashAST $ast) {
 
     my $op = $ast->{op};
@@ -152,7 +154,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     my $OP = uc $op;
     my $prio = $SQL::Abstract::PRIO{$op};
 
-    my $dispatch_table = $self->where_dispatch_table;
+    my $dispatch_table = $self->expr_dispatch_table;
 
     my @output;
     foreach ( @{$ast->{args}} ) {
@@ -167,43 +169,37 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
           push @output, '(' . $self->_recurse_where($_) . ')';
         }
       } else {
-        push @output, $self->_where_component($_);
+        push @output, $self->_expr($_);
       }
     }
 
     return join(" $OP ", @output);
   }
 
-  method _where_component(HashAST $ast) {
+  method _expr(HashAST $ast) {
     my $op = $ast->{-type};
 
-    if (my $code = $self->lookup_where_dispatch($op)) { 
+    $op = $ast->{op} if $op eq 'expr';
+
+    if (my $code = $self->lookup_expr_dispatch($op)) { 
       
       return $code->($self, $ast);
 
     }
-    croak "'$op' is not a valid AST type in an expression"
-      if $op =~ /^-/;
+    croak "'$op' is not a valid AST type in an expression with " . dump($ast)
+      if $ast->{-type} ne 'expr';
 
-    use Devel::PartialDump qw/dump/;
-    croak "'$op' is not a valid AST type in " . dump($ast);
+    croak "'$op' is not a valid operator in an expression with " . dump($ast);
    
-  }
-
-  method _expr(HashAST $ast) {
-    my $op = $ast->{op};
-    my $meth = $self->lookup_where_dispatch($op) || confess "Invalid operator '$op'";
-   
-    $meth->($self, $ast);
   }
 
   method _binop(HashAST $ast) {
     my ($lhs, $rhs) = @{$ast->{args}};
     my $op = $ast->{op};
 
-    join (' ', $self->_where_component($lhs), 
+    join (' ', $self->_expr($lhs), 
                $self->binop_mapping($op) || croak("Unknown binary operator $op"),
-               $self->_where_component($rhs)
+               $self->_expr($rhs)
     );
   }
 
@@ -215,7 +211,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
     return $self->_false unless @values;
 
-    return $self->_where_component($field) .
+    return $self->_expr($field) .
            $not . 
            " IN (" .
            join(", ", map { $self->dispatch($_) } @values ) .
