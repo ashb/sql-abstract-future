@@ -54,14 +54,15 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     push @output, FROM => $self->dispatch($ast->{tablespec})
       if exists $ast->{tablespec};
 
-    for (qw//) {
+    for (qw/where having group_by/) {
       if (exists $ast->{$_}) {
         my $sub_ast = $ast->{$_};
-        $sub_ast->{-type} = "$_" if is_HashRef($sub_ast);
-        confess "$_ option is not an AST"
+
+        confess "$_ option is not an AST: " . dump($sub_ast)
           unless is_AST($sub_ast);
 
-        push @output, $self->dispatch($sub_ast);
+        my $meth = "__$_";
+        push @output, $self->$meth($sub_ast);
       }
     }
 
@@ -151,6 +152,11 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
     $self->add_bind($ast->{value});
     return "?";
+  }
+
+  # Not dispatchable to.
+  method __where(HashAST $ast) {
+    return "WHERE " . $self->_expr($ast);
   }
 
   # Perhaps badly named. handles 'and' and 'or' clauses
