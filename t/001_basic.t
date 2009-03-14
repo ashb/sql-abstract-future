@@ -1,10 +1,11 @@
 use strict;
 use warnings;
 
-use Test::More tests => 8;
+use Test::More tests => 9;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
+use_ok('SQL::Abstract::AST::v1') or BAIL_OUT( "$@" );
 
 my $sqla = SQL::Abstract->create(1);
 

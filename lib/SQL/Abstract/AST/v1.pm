@@ -54,12 +54,21 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     push @output, FROM => $self->dispatch($ast->{tablespec})
       if exists $ast->{tablespec};
 
-    for (qw/where having group_by/) {
+    if (exists $ast->{where}) {
+      my $sub_ast = $ast->{where};
+
+      confess "$_ option is not an AST: " . dump($sub_ast)
+        unless is_AST($sub_ast);
+
+      push @output, "WHERE", $self->_expr($sub_ast);
+    }
+
+    for (qw/group_by having order_by/) {
       if (exists $ast->{$_}) {
         my $sub_ast = $ast->{$_};
 
-        confess "$_ option is not an AST: " . dump($sub_ast)
-          unless is_AST($sub_ast);
+        confess "$_ option is not an AST or an ArrayRef: " . dump($sub_ast)
+          unless is_AST($sub_ast) || is_ArrayRef($sub_ast);;
 
         my $meth = "__$_";
         push @output, $self->$meth($sub_ast);
@@ -82,28 +91,27 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     push @output, 
         exists $ast->{on}
       ? ('ON', '(' . $self->_expr( $ast->{on} ) . ')' )
-      : ('USING', '(' .$self->dispatch($ast->{using} || croak "No 'on' or 'join' clause passed to -join").
+      : ('USING', '(' .$self->dispatch($ast->{using} 
+                        || croak "No 'on' or 'uinsg' clause passed to join cluase: " .
+                                 dump($ast) 
+                        ) .
                   ')' );
 
     return join(" ", @output);
       
   }
 
-  method _order_by(AST $ast) {
-    my @clauses = @{$ast->{order_by}};
-  
-    my @output;
-   
-    for (@clauses) {
-      if (is_ArrayRef($_) && $_->[0] =~ /^-(asc|desc)$/) {
-        my $o = $1;
-        push @output, $self->dispatch($_->[1]) . " " . uc($o);
-        next;
-      }
-      push @output, $self->dispatch($_);
-    }
+  method _ordering(AST $ast) {
+ 
+    my $output = $self->_expr($ast->{expr});
 
-    return "ORDER BY " . join(", ", @output);
+    $output .= " " . uc $1
+      if $ast->{direction} && 
+         ( $ast->{direction} =~ /^(asc|desc)$/i 
+           || confess "Unknown ordering direction " . dump($ast)
+         );
+
+    return $output;
   }
 
   method _name(HashAST $ast) {
@@ -133,7 +141,9 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
 
   method _list(AST $ast) {
-    my @items = @{$ast->{args}};
+    my @items = is_ArrayRef($ast->{args})
+              ? @{$ast->{args}}
+              : $ast->{args};
 
     return join(
       $self->list_separator,
@@ -155,9 +165,18 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   }
 
   # Not dispatchable to.
-  method __where(HashAST $ast) {
-    return "WHERE " . $self->_expr($ast);
+  method __having($args) {
+    return "HAVING " . $self->_list({-type => 'list', args => $args});
   }
+
+  method __group_by($args) {
+    return "GROUP BY " . $self->_list({-type => 'list', args => $args});
+  }
+
+  method __order_by($args) {
+    return "ORDER BY " . $self->_list({-type => 'list', args => $args});
+  }
+
 
   # Perhaps badly named. handles 'and' and 'or' clauses
   method _recurse_where(HashAST $ast) {

@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 4;
+use Test::More tests => 5;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -72,3 +72,19 @@ is $sqla->dispatch(
 
 ), "SELECT me.* FROM foo AS me WHERE me.id = ?",
    "select with where";
+
+
+is $sqla->dispatch(
+  { -type => 'select',
+    tablespec => $foo_as_me,
+    columns => [
+      { -type => 'name', args => [qw/me id/] },
+      { -type => 'alias', ident => $me_foo_id, as => 'foo' },
+    ],
+    order_by => [
+      { -type => 'ordering', expr => { -type => 'name', args => [qw/me name/] }, direction => 'desc' },
+      $me_foo_id,
+    ]
+  }
+), "SELECT me.id, me.foo_id AS foo FROM foo AS me ORDER BY me.name DESC, me.foo_id",
+   "select clause with order by";
