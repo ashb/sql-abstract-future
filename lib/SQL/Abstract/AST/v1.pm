@@ -69,18 +69,14 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   }
 
   method _join(HashRef $ast) {
-    confess "'args' option to join should be an array ref, not " . dump($ast->{args})
-      unless is_ArrayRef($ast->{args});
-
-    my ($from, $to) = @{ $ast->{args} };
 
     # TODO: Validate join type
     my $type = $ast->{join_type} || "";
   
-    my @output = $self->dispatch($from);
+    my @output = $self->dispatch($ast->{lhs});
 
     push @output, uc $type if $type;
-    push @output, "JOIN", $self->dispatch($to);
+    push @output, "JOIN", $self->dispatch($ast->{rhs});
 
     push @output, 
         exists $ast->{on}

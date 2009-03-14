@@ -28,10 +28,8 @@ is $sqla->dispatch(
     ],
     tablespec => {
       -type => 'join',
-      args => [ 
-        {-type => 'alias', ident => {-type => 'name', args => [qw/foo/]}, as => 'me' },
-        {-type => 'name', args => [qw/bar/] },
-      ],
+      lhs => {-type => 'alias', ident => {-type => 'name', args => [qw/foo/]}, as => 'me' },
+      rhs => {-type => 'name', args => [qw/bar/] },
       on => {
         -type => 'expr',
         op => '==',

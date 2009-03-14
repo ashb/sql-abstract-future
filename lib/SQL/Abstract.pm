@@ -1,13 +1,11 @@
 use MooseX::Declare;
 
-
 class SQL::Abstract {
 
   use Carp qw/croak/;
   use Data::Dump qw/pp/;
 
   use Moose::Util::TypeConstraints;
-  use MooseX::Types -declare => [qw/NameSeparator/];
   use MooseX::Types::Moose qw/ArrayRef Str Int HashRef CodeRef/;
   use MooseX::AttributeHelpers;
   use SQL::Abstract::Types qw/NameSeparator QuoteChars AST HashAST ArrayAST/;
@@ -138,6 +136,8 @@ class SQL::Abstract {
   }
 
   method dispatch (AST $ast) {
+
+
     # I want multi methods!
     my $tag;
     if (is_ArrayAST($ast)) {
