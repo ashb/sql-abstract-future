@@ -45,7 +45,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     confess "'columns' should be an array ref, not " . dump($ast->{columns})
       unless is_ArrayRef($ast->{columns});
 
-    my $cols = join ($self->list_separator, map { $self->dispatch($_) } @{ $ast->{columns}});
+    my $cols = $self->_list({-type => 'list', args => $ast->{columns} });
 
     my @output = (
       SELECT => $cols
@@ -68,10 +68,20 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return join(' ', @output);
   }
 
-  method _where(ArrayAST $ast) {
-    my (undef, @clauses) = @$ast;
+  method _join(HashRef $ast) {
+    my ($from, $to) = @{ $ast->{args} };
   
-    return 'WHERE ' . $self->_recurse_where(\@clauses);
+    my $output = $self->dispatch($from)
+               . ' JOIN ' 
+               . $self->dispatch($to);
+
+    $output .= exists $ast->{on}
+             ? ' ON (' . $self->_expr( $ast->{on} )
+             : ' USING (' .$self->dispatch($ast->{using} || croak "No 'on' or 'join' clause passed to -join");
+
+    $output .= ")";
+    return $output;
+      
   }
 
   method _order_by(AST $ast) {
@@ -116,18 +126,6 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return $ret;
   }
 
-  method _join(HashRef $ast) {
-  
-    my $output = 'JOIN ' . $self->dispatch($ast->{tablespec});
-
-    $output .= exists $ast->{on}
-             ? ' ON (' . $self->_expr( $ast->{on} )
-             : ' USING (' .$self->dispatch($ast->{using} || croak "No 'on' or 'join' clause passed to -join");
-
-    $output .= ")";
-    return $output;
-      
-  }
 
   method _list(AST $ast) {
     my @items = @{$ast->{args}};
