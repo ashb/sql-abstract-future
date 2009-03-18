@@ -77,7 +77,6 @@ class SQL::Abstract {
     is => 'rw', 
     isa => NameSeparator,
     default => '.',
-    coerece => 1,
     required => 1,
   );
 
@@ -91,9 +90,9 @@ class SQL::Abstract {
   has quote_chars => (
     is => 'rw', 
     isa => QuoteChars,
-    coerece => 1,
     predicate => 'is_quoting',
     clearer => 'disable_quoting', 
+    coerce => 1,
   );
 
   has binds => (
