@@ -1,0 +1,240 @@
+=head1 NAME
+
+SQL::Abstract::Manual::Specification
+
+=head1 SYNOPSIS
+
+This discusses the specification for the AST provided by L<SQL::Abstract>. It is
+meant to describe how the AST is structured, various components provided by
+L<SQL::Abstract> for use with this AST, how to manipulate the AST, and various
+uses for the AST once it is generated.
+
+=head1 MOTIVATIONS
+
+L<SQL::Abstract> has been in use for many years. Originally created to handle
+the where-clause formation found in L<DBIx::Abstract>, it was generalized to
+manage the creation of any SQL statement through the use of Perl structures.
+Through the beating it received as the SQL generation syntax for L<DBIx::Class>,
+various deficiencies were found and a generalized SQL AST was designed. This
+document describes that AST.
+
+=head1 GOALS
+
+The goals for this AST are as follows:
+
+=head2 SQL-specific semantics
+
+Instead of attempting to be an AST to handle any form of query, this will
+instead be specialized to manage SQL queries (and queries that map to SQL
+queries). This means that there will be support for SQL-specific features, such
+as placeholders.
+
+=head2 Perl-specific semantics
+
+This AST is meant to be used from within Perl5 only. So, it will take advantage
+of as many Perl-specific features that make sense to use. No attempt whatosever
+will be made to make this AST work within any other language, including Perl6.
+
+=head2 Whole-lifecycle management
+
+Whether a query is built out of whole cloth in one shot or cobbled together from
+several snippets over the lifetime of a process, this AST will support any way
+to construct the query. Queries can also be built from other queries, so an
+UPDATE statement could be used as the basis for a SELECT statement, DELETE
+statement, or even a DDL statement of some kind.
+
+=head2 Dialect-agnostic usage
+
+Even though SQL itself has several ANSI specifications (SQL-92 and SQL-99 among
+them), this only serves as a basis for what a given RDBMS will expect. However,
+every engine has its own specific extensions and specific ways of handling
+common features. The API to the AST will provide ways of expressing common
+functionality in a common language.  The emitters (objects that follow the
+Visitor pattern) will be responsible for converting that common language into
+RDBMS-specific SQL.
+
+=head1 AST STRUCTURE
+
+The AST will be a HoA (hash of arrays). The keys to the hash will be the various
+clauses of a SQL statement, plus some metadata keys. All metadata keys will be
+identifiable as such by being prefixed with an underscore. All keys will be in
+lowercase.
+
+=head2 Metadata keys
+
+These are the additional metadata keys that the AST provides for.
+
+=over 4
+
+=item * _query
+
+This denotes what kind of query this AST should be interpreted as.
+
+=item *
+
+=back
+
+=head2 Structural units
+
+Structural units in the AST are supported by loaded components. L<SQL::Abstract>
+provides for the following structural units by default:
+
+=head3 Identifier
+
+This is a (potentially) fully canonicalized identifier for a table or column. Is
+is of the structure C< [schema][sep][table][sep]column > or
+C< [schema][sep]table >.
+
+In the case of a two-element identifier which could be C< table[sep]column > or
+C< schema[sep]table >, context will determine which it is. However, the AST
+doesn't care which it is, only that it properly parses.
+
+=head3 Constant
+
+A Constant is a Perl scalar. It may either be a String (quoted series of
+characters) or a number (unquoted).
+
+=head3 Function
+
+A Function is anything of the form C< name( arglist ) > where C<name> is a
+string and C<arglist> is a comma-separated list of Expressions.
+
+Yes, a Subquery is legal as an argument for many functions.
+
+=head3 Subquery
+
+A Subquery is another AST whose _query metadata parameter is set to "SELECT".
+
+Most places that a Subquery can be used would require a single value to be
+returned (single column, single row), but that is not something that the AST can
+easily enforce. The single-column restriction can possibly be enforced, but the
+single-row restriction is much more difficult and, in most cases, probably
+impossible.
+
+=head3 Unary Operator
+
+A UnaryOperator takes a single argument on the RHS and is one of the following:
+
+=over 4
+
+=item * C<< NOT >>
+
+=back
+
+=head3 BinaryOperator
+
+A BinaryOperator takes two arguments (one on the LHS and one on the RHS) and is
+one of the following:
+
+=over 4
+
+=item * C<< = >>
+
+=item * C<< != >>
+
+=item * C<< > >>
+
+=item * C<< < >>
+
+=item * C<< >= >>
+
+=item * C<< <= >>
+
+=item * C<< IS >>
+
+=item * C<< IS NOT >>
+
+=item * C<< IN >>
+
+=item * C<< NOT IN >>
+
+=back
+
+Note that an operator can comprise of what would be multiple tokens in a normal
+parsing effort.
+
+=head3 Expression
+
+An expression can be any one of the following:
+
+=over 4
+
+=item * Constant
+
+=item * Function
+
+=item * Subquery
+
+=item * UnaryOperator Expression
+
+=item * Expression BinaryOperator Expression
+
+=back
+
+=head2 SQL clauses
+
+The expected clauses are (name and structure):
+
+=head3 select
+
+This corresponds to the SELECT clause of a SELECT statement. It maps to a comma-
+separated list of the following construct C< Expression [ [ AS ] String ] >
+(where the [] indicate optional items).
+
+=head3 tables
+
+This is a list of tables that this clause is affecting. It corresponds to the
+FROM clause in a SELECT statement and the UPDATE/DELETE clauses in those
+respective statements. Depending on the _query metadata entry, the appropriate
+clause name will be used.
+
+The tables clause has several RDBMS-specific variations. The AST will support
+all of them and it is up to the Visitor object constructing the actual SQL to
+validate and/or use what is provided as appropriate.
+
+A table clause is composed as follows:
+
+  TableIdentifier := Identifier [ [ AS ] String ]
+  JoinType := < LEFT|RIGHT [ OUTER ] > | < INNER >
+
+  TableIdentifier
+  [
+      < , TableIdentifier >
+    | <
+        [ JoinType ] JOIN TableIdentifier
+        [
+            < USING ( Identifier [ , Identifier ] ) >
+          | < ON [ ( ] Expression [ , Expression ] [ ) ] >
+        ]
+      >
+  ]*
+
+Additionally, where aliases are provided for in the TableIdentifier, those
+aliases must be used as the tablename in subsequent Identifiers that identify a
+column of that table.
+
+=head3 where
+
+=head3 set
+
+=head3 values
+
+=head3 orderby
+
+=head3 groupby
+
+=head3 rows
+
+=head3 for
+
+=head3
+
+=head1 AUTHORS
+
+robkinyon: Rob Kinyon <rkinyon@cpan.org>
+
+=head1 LICENSE
+
+You may distribute this code under the same terms as Perl itself.
+
+=cut
