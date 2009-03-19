@@ -92,14 +92,27 @@ doesn't care which it is, only that it properly parses.
 =head3 Constant
 
 A Constant is a Perl scalar. It may either be a String (quoted series of
-characters) or a number (unquoted).
+characters) or a number (unquoted) or NULL (corresponds to Perl's C<undef>).
 
 =head3 Function
 
 A Function is anything of the form C< name( arglist ) > where C<name> is a
 string and C<arglist> is a comma-separated list of Expressions.
 
-Yes, a Subquery is legal as an argument for many functions.
+Yes, a Subquery is legal as an argument for many functions. Some example
+functions are:
+
+=over 4
+
+=item * C<< IN >>
+
+=item * C<< MAX >>
+
+=item * C<< MIN >>
+
+=item * C<< SUM >>
+
+=back
 
 =head3 Subquery
 
@@ -110,6 +123,8 @@ returned (single column, single row), but that is not something that the AST can
 easily enforce. The single-column restriction can possibly be enforced, but the
 single-row restriction is much more difficult and, in most cases, probably
 impossible.
+
+Subqueries, when expressed in SQL, must bounded by parentheses.
 
 =head3 Unary Operator
 
@@ -144,10 +159,6 @@ one of the following:
 
 =item * C<< IS NOT >>
 
-=item * C<< IN >>
-
-=item * C<< NOT IN >>
-
 =back
 
 Note that an operator can comprise of what would be multiple tokens in a normal
@@ -169,7 +180,12 @@ An expression can be any one of the following:
 
 =item * Expression BinaryOperator Expression
 
+=item * ( Expression )
+
 =back
+
+Parentheses indicate precedence and, in some situations, are necessary for
+certain operators.
 
 =head2 SQL clauses
 
@@ -177,16 +193,21 @@ The expected clauses are (name and structure):
 
 =head3 select
 
-This corresponds to the SELECT clause of a SELECT statement. It maps to a comma-
-separated list of the following construct C< Expression [ [ AS ] String ] >
-(where the [] indicate optional items).
+This corresponds to the SELECT clause of a SELECT statement.
+
+A select clause is composed as follows:
+
+  SelectComponent := Expression [ [ AS ] String ]
+
+  SelectComponent
+  [ , SelectComponent ]*
 
 =head3 tables
 
 This is a list of tables that this clause is affecting. It corresponds to the
-FROM clause in a SELECT statement and the UPDATE/DELETE clauses in those
-respective statements. Depending on the _query metadata entry, the appropriate
-clause name will be used.
+FROM clause in a SELECT statement and the INSERT INTO/UPDATE/DELETE clauses in
+those respective statements. Depending on the _query metadata entry, the
+appropriate clause name will be used.
 
 The tables clause has several RDBMS-specific variations. The AST will support
 all of them and it is up to the Visitor object constructing the actual SQL to
@@ -195,7 +216,7 @@ validate and/or use what is provided as appropriate.
 A table clause is composed as follows:
 
   TableIdentifier := Identifier [ [ AS ] String ]
-  JoinType := < LEFT|RIGHT [ OUTER ] > | < INNER >
+  JoinType := < LEFT|RIGHT [ OUTER ] > | INNER | CROSS
 
   TableIdentifier
   [
@@ -215,23 +236,98 @@ column of that table.
 
 =head3 where
 
+This corresponds to the WHERE clause in a SELECT, UPDATE, or DELETE statement.
+
+A where clause is composed as follows:
+
+  WhereOperator := AND | OR
+  WhereExpression := Expression | Expression WhereOperator Expression
+
+  WhereExpression
+
 =head3 set
+
+This corresponds to the SET clause in an INSERT or UPDATE statement.
+
+A set clause is composed as follows:
+
+  SetComponent := Identifier = Expression
+
+  SetComponent [ , SetComponent ]*
+
+=head3 columns
+
+This corresponds to the optional list of columns in an INSERT statement.
+
+A columns clause is composed as follows:
+
+  ( Identifier [ , Identifier ]* )
 
 =head3 values
 
+This corresponds to the VALUES clause in an INSERT statement.
+
+A values clause is composed as follows:
+
+  ( Expression [ , Expression ]* )
+
+If there is a columns clause, the number of entries in the values clause must be
+equal to the number of entries in the columns clause.
+
 =head3 orderby
+
+This corresponds to the ORDER BY clause in a SELECT statement.
+
+An orderby clause is composed as follows:
+
+  OrderByComponent := XXX
+  OrderByDirection := ASC | DESC
+
+  OrderByComponent [ OrderByDirection ]
+  [ , OrderByComponent [ OrderByDirection ] ]*
 
 =head3 groupby
 
+This corresponds to the GROUP BY clause in a SELECT statement.
+
+An groupby clause is composed as follows:
+
+  GroupByComponent := XXX
+
+  GroupByComponent [ , GroupByComponent ]*
+
 =head3 rows
 
+This corresponds to the clause that is used in some RDBMS engines to limit the
+number of rows returned by a query. In MySQL, this would be the LIMIT clause.
+
+A rows clause is composed as follows:
+
+  Number [, Number ]
+
 =head3 for
+
+This corresponds to the clause that is used in some RDBMS engines to indicate
+what locks are to be taken by this SELECT statement.
+
+A for clause is composed as follows:
+
+  UPDATE | DELETE
+
+=head3 connectby
+
+This corresponds to the clause that is used in some RDBMS engines to provide for
+an adjacency-list query.
+
+A connectby clause is composed as follows:
+
+  Identifier, WhereExpression
 
 =head3
 
 =head1 AUTHORS
 
-robkinyon: Rob Kinyon <rkinyon@cpan.org>
+robkinyon: Rob Kinyon C<< <rkinyon@cpan.org> >>
 
 =head1 LICENSE
 
