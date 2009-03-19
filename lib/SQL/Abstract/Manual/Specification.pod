@@ -89,10 +89,33 @@ In the case of a two-element identifier which could be C< table[sep]column > or
 C< schema[sep]table >, context will determine which it is. However, the AST
 doesn't care which it is, only that it properly parses.
 
-=head3 Constant
+=head3 Value
 
-A Constant is a Perl scalar. It may either be a String (quoted series of
-characters) or a number (unquoted) or NULL (corresponds to Perl's C<undef>).
+A Value is a Perl scalar. It may either be a:
+
+=over 4
+
+=item * String
+
+A String is a quoted series of characters
+
+=item * Number
+
+A Number is an unquoted number in some numeric format
+
+=item * NULL
+
+NULL corresponds to Perl's C<undef>
+
+=item * BindParameter
+
+This corresponds to a value that will be passed in. This value is normally
+quoted in such a fashion so as to protect against SQL injection attacks. (q.v.
+L<DBI/quote()> for an example.)
+
+=back
+
+=head3 
 
 =head3 Function
 
@@ -170,7 +193,7 @@ An expression can be any one of the following:
 
 =over 4
 
-=item * Constant
+=item * Value
 
 =item * Function
 
@@ -188,6 +211,40 @@ Parentheses indicate precedence and, in some situations, are necessary for
 certain operators.
 
 =head2 SQL clauses
+
+These are all the legal and acceptable clauses within the AST that would
+correpsond to clauses in a SQL statement. Not all clauses are legal within a
+given RDBMS engine's SQL dialect and some clauses may be required in one and
+optional in another. Detecting and enforcing those engine-specific restrictions
+is the responsibility of the Visitor object.
+
+The clauses are defined with a yacc-like syntax. The various parts are:
+
+=over 4
+
+=item * :=
+
+This means "defined" and is used to create a new term to be used below.
+
+=item * []
+
+This means optional and indicates that the items within it are optional.
+
+=item * []*
+
+This means optional and repeating as many times as desired.
+
+=item * |
+
+This means alternation. It is a binary operator and indicates that either the
+left or right hand sides may be used, but not both.
+
+=item * C<< <> >>
+
+This is a grouping construct. It means that all elements within this construct
+are treated together for the purposes of optional, repeating, alternation, etc.
+
+=back
 
 The expected clauses are (name and structure):
 
@@ -280,7 +337,7 @@ This corresponds to the ORDER BY clause in a SELECT statement.
 
 An orderby clause is composed as follows:
 
-  OrderByComponent := XXX
+  OrderByComponent := XXX-TODO-XXX
   OrderByDirection := ASC | DESC
 
   OrderByComponent [ OrderByDirection ]
@@ -292,7 +349,7 @@ This corresponds to the GROUP BY clause in a SELECT statement.
 
 An groupby clause is composed as follows:
 
-  GroupByComponent := XXX
+  GroupByComponent := XXX-TODO-XXX
 
   GroupByComponent [ , GroupByComponent ]*
 
@@ -322,8 +379,6 @@ an adjacency-list query.
 A connectby clause is composed as follows:
 
   Identifier, WhereExpression
-
-=head3
 
 =head1 AUTHORS
 
