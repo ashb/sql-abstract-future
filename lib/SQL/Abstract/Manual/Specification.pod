@@ -153,7 +153,7 @@ responsible for validating that the elements are non-empty Strings.
 The hash will be structured as follows:
 
   {
-      _name   => 'identifier',
+      _name   => 'Identifier',
       items   => [String],
   }
 
@@ -186,7 +186,17 @@ L<DBI/quote()> for an example.)
 
 =back
 
-=head3 
+The hash will be structured as follows:
+
+  {
+      _name => 'Value'
+      _subtype => [ 'String' | 'Number' | 'NULL' | 'BindParameter' ]
+      value => [Scalar]
+  }
+
+The provided subtypes are the ones that all Visitors are expected to support.
+Visitors may choose to support additional subtypes. Visitors are expected to
+throw an exception upon encountering an unknown subtype.
 
 =head3 Function
 
@@ -197,8 +207,6 @@ Yes, a Subquery is legal as an argument for many functions. Some example
 functions are:
 
 =over 4
-
-=item * C<< IN >>
 
 =item * C<< MAX >>
 
@@ -232,31 +240,48 @@ A UnaryOperator takes a single argument on the RHS and is one of the following:
 
 =head3 BinaryOperator
 
-A BinaryOperator takes two arguments (one on the LHS and one on the RHS) and is
-one of the following:
+A BinaryOperator takes two arguments (one on the LHS and one on the RHS).
+
+Examples of BinaryOperators would include:
 
 =over 4
 
-=item * C<< = >>
+=item * X = Y
 
-=item * C<< != >>
+=item * X != Y
 
-=item * C<< > >>
+=item * X > Y
 
-=item * C<< < >>
+=item * X < Y
 
-=item * C<< >= >>
+=item * X >= Y
 
-=item * C<< <= >>
+=item * X <= Y
 
-=item * C<< IS >>
+=item * X IS Y
 
-=item * C<< IS NOT >>
+=item * X IS NOT Y
+
+=item * X IN Y
 
 =back
 
 Note that an operator can comprise of what would be multiple tokens in a normal
 parsing effort.
+
+=head3 TrinaryOperator
+
+A TrinaryOperator takes three arguments. It generally is composed of two
+elements with one argument to the LHS, one to the RHS, and a third in the middle
+of the elements.
+
+Examples of TrinaryOperators would include:
+
+=over 4
+
+=item * X BETWEEN Y AND Z
+
+=back
 
 =head3 Expression
 
