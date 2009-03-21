@@ -72,6 +72,12 @@ addition, there will be visitors for at least one of the ANSI specifications.
 
 =back
 
+The division of duties between the two components will focus on what the AST
+can and cannot assume. For example, identifiers do not have 20 components in
+any dialect, so the AST can validate that. However, determining what
+constitutes a legal identifier can only be determined by the Visitor object
+enforcing that dialect's rules.
+
 =head1 AST STRUCTURE
 
 The AST will be a HoHo..oH (hash of hash of ... of  hashes). The keys to the
@@ -83,32 +89,76 @@ with an underscore. All keys will be in lowercase.
 
 These are the additional metadata keys that the AST provides for.
 
+=head3 _query
+
+This denotes what kind of query this AST should be interpreted as. Different
+Visitors may accept additional values for _query. For example, a MySQL Visitor
+may choose to accept 'replace'. If a _query value is unrecognized by the
+Visitor, the Visitor is expected to throw an error.
+
+All Visitors are expected to handle the following values for _query:
+
 =over 4
 
-=item * _query
+=item * select
 
-This denotes what kind of query this AST should be interpreted as.
+This is a SELECT statement.
 
-=item * _version
+=item * insert
 
-This denotes the version of the AST.
+This is an INSERT statement.
+
+=item * update
+
+This is an UPDATE statement.
+
+=item * delete
+
+This is a DELETE statement.
 
 =back
 
+=head3 _version
+
+This denotes the version of the AST. Different versions will indicate different
+capabilities provided. Visitors will choose to respect the _version as needed
+and desired.
+
 =head2 Structural units
+
+All structural units will be hashes. These hashes will have, at minimum, the
+following keys:
+
+=over 4
+
+=item * _name
+
+This indicates the structural unit that this hash is representing. While this
+specification provides for standard structural units, different Visitors may
+choose to accept additional units as desired. If a Visitor encounters a unit it
+doesn't know how to handle, it is expected to throw an exception. 
+
+=back
 
 Structural units in the AST are supported by loaded components. L<SQL::Abstract>
 provides for the following structural units by default:
 
 =head3 Identifier
 
-This is a (potentially) fully canonicalized identifier for a table or column. Is
-is of the structure C< [schema][sep][table][sep]column > or
-C< [schema][sep]table >.
+This is a (potentially) fully canonicalized identifier for a elemnt in the
+query. This element could be a schema, table, or column. The Visitor will
+determine validity within the context of that SQL dialect. The AST is only
+responsible for validating that the elements are non-empty Strings.
 
-In the case of a two-element identifier which could be C< table[sep]column > or
-C< schema[sep]table >, context will determine which it is. However, the AST
-doesn't care which it is, only that it properly parses.
+The hash will be structured as follows:
+
+  {
+      _name   => 'identifier',
+      items   => [String],
+  }
+
+The items will always be quoted per the SQL dialect's quoting scheme. It is the
+responsibility of the Visitor to do this.
 
 =head3 Value
 
