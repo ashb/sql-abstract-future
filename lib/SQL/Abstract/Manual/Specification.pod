@@ -48,17 +48,36 @@ statement, or even a DDL statement of some kind.
 Even though SQL itself has several ANSI specifications (SQL-92 and SQL-99 among
 them), this only serves as a basis for what a given RDBMS will expect. However,
 every engine has its own specific extensions and specific ways of handling
-common features. The API to the AST will provide ways of expressing common
-functionality in a common language.  The emitters (objects that follow the
-Visitor pattern) will be responsible for converting that common language into
-RDBMS-specific SQL.
+common features. The AST will provide ways of expressing common functionality in
+a common language. The emitters (objects that follow the Visitor pattern) will
+be responsible for converting that common language into RDBMS-specific SQL.
+
+=head1 COMPONENTS
+
+There are two major components to SQL::Abstract v2.
+
+=over 4
+
+=item * AST
+
+This is the Abstract Syntax Tree. It is a data structure that represents
+everything necessary to construct the SQL statement in whatever dialect the
+user requires.
+
+=item * Visitor
+
+This object conforms to the Visitor pattern and is used to generate the SQL
+represented by the AST. Each dialect will have a different Visitor object. In
+addition, there will be visitors for at least one of the ANSI specifications.
+
+=back
 
 =head1 AST STRUCTURE
 
-The AST will be a HoA (hash of arrays). The keys to the hash will be the various
-clauses of a SQL statement, plus some metadata keys. All metadata keys will be
-identifiable as such by being prefixed with an underscore. All keys will be in
-lowercase.
+The AST will be a HoHo..oH (hash of hash of ... of  hashes). The keys to the
+outermost hash will be the various clauses of a SQL statement, plus some
+metadata keys. All metadata keys will be identifiable as such by being prefixed
+with an underscore. All keys will be in lowercase.
 
 =head2 Metadata keys
 
@@ -70,7 +89,9 @@ These are the additional metadata keys that the AST provides for.
 
 This denotes what kind of query this AST should be interpreted as.
 
-=item *
+=item * _version
+
+This denotes the version of the AST.
 
 =back
 
@@ -105,7 +126,7 @@ A Number is an unquoted number in some numeric format
 
 =item * NULL
 
-NULL corresponds to Perl's C<undef>
+NULL is SQL's NULL and corresponds to Perl's C<undef>.
 
 =item * BindParameter
 
