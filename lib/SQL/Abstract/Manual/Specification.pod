@@ -119,8 +119,8 @@ These are the additional metadata keys that the AST provides for.
 
 This denotes what kind of query this AST should be interpreted as. Different
 Visitors may accept additional values for _query. For example, a MySQL Visitor
-may choose to accept 'replace'. If a _query value is unrecognized by the
-Visitor, the Visitor is expected to throw an error.
+may choose to accept 'replace' for REPLACE INTO. If a _query value is
+unrecognized by the Visitor, the Visitor is expected to throw an error.
 
 All Visitors are expected to handle the following values for _query:
 
@@ -157,7 +157,7 @@ following keys:
 
 =over 4
 
-=item * _name
+=item * name
 
 This indicates the structural unit that this hash is representing. While this
 specification provides for standard structural units, different Visitors may
@@ -179,26 +179,33 @@ responsible for validating that the elements are non-empty Strings.
 The hash will be structured as follows:
 
   {
-      _name   => 'Identifier',
-      items   => [Scalar],
+      name     => 'Identifier',
+      element1 => Scalar,
+      element2 => Scalar,
+      element3 => Scalar,
   }
+
+If element3 exists, then element2 must exist. element1 must always exist. If a
+given element exists, then it must be defined and of non-zero length.
 
 Visitors are expected to, by default, quote all identifiers according to the SQL
 dialect's quoting scheme.
 
 =head3 Value
 
-A Value is a Perl scalar. It may either be a:
+A Value is a Perl scalar. Depending on the type, a Visitor may be able to make
+certain decisions.
 
 =over 4
 
 =item * String
 
-A String is a quoted series of characters
+A String is a quoted series of characters. The Visitor is expected to ensure
+that embedded quotes are properly handled per the SQL dialect's quoting scheme.
 
 =item * Number
 
-A Number is an unquoted number in some numeric format
+A Number is an unquoted number in some numeric format.
 
 =item * Null
 
@@ -210,14 +217,16 @@ This corresponds to a value that will be passed in. This value is normally
 quoted in such a fashion so as to protect against SQL injection attacks. (q.v.
 L<DBI/quote()> for an example.)
 
+BindParameters are normally represented by a '?'.
+
 =back
 
 The hash will be structured as follows:
 
   {
-      _name => 'Value'
-      _subtype => [ 'String' | 'Number' | 'Null' | 'BindParameter' ]
-      value => [Scalar]
+      name    => 'Value'
+      subtype => [ 'String' | 'Number' | 'Null' | 'BindParameter' ]
+      value   => Scalar
   }
 
 The provided subtypes are the ones that all Visitors are expected to support.
@@ -226,8 +235,8 @@ throw an exception upon encountering an unknown subtype.
 
 =head3 Function
 
-A Function is anything of the form C< name( arglist ) > where C<name> is a
-string and C<arglist> is a comma-separated list of Expressions.
+A Function is anything of the form C<< name( arglist ) >> where C<<name>> is a
+string and C<arglist> is an ExpressionList.
 
 Yes, a Subquery is legal as an argument for many functions. Some example
 functions are:
@@ -243,6 +252,14 @@ functions are:
 =item * C<< IF >>
 
 =back
+
+The hash will be structured as follows:
+
+  {
+      name     => "Function",
+      function => String,
+      arglist  => ExpressionList,
+  }
 
 Functions have a cardinality, or expected number of arguments. Some functions,
 such as MAX(), have a cardinality of 1. Others, such as IF(), have a cardinality
@@ -264,7 +281,7 @@ easily enforce. The single-column restriction may possibly be enforced, but the
 single-row restriction is much more difficult and, in most cases, probably
 impossible.
 
-Subqueries, when expressed in SQL, must bounded by parentheses.
+Subqueries, when expressed in SQL, must be bounded by parentheses.
 
 =head3 Unary Operator
 
@@ -288,8 +305,8 @@ Visitors are expected to support, at minimum, the following operators:
 The hash for a UnaryOperator is as follows:
 
   {
-      _name => 'UnaryOperator'
-      _operator => [ .... ],
+      name      => 'UnaryOperator'
+      operator  => [ .... ],
       argument1 => Expression,
   }
 
@@ -338,8 +355,8 @@ throw an exception upon encountering an unknown operator.
 The hash for a BinaryOperator is as follows:
 
   {
-      _name => 'BinaryOperator'
-      _operator => [ .... ],
+      name      => 'BinaryOperator'
+      operator  => [ .... ],
       argument1 => Expression,
       argument2 => Expression,
   }
@@ -364,8 +381,8 @@ throw an exception upon encountering an unknown operator.
 The hash for a TrinaryOperator is as follows:
 
   {
-      _name => 'TrinaryOperator'
-      _operator => [ .... ],
+      name      => 'TrinaryOperator'
+      operator  => [ .... ],
       argument1 => Expression,
       argument2 => Expression,
       argument3 => Expression,
@@ -373,7 +390,7 @@ The hash for a TrinaryOperator is as follows:
 
 =head3 Expression
 
-An expression can be any one of the following:
+An Expression can be any one of the following:
 
 =over 4
 
@@ -389,19 +406,26 @@ An expression can be any one of the following:
 
 =item * TrinaryOperator
 
-=item * ( Expression )
-
 =back
 
-Parentheses indicate precedence and, in some situations, are necessary for
-certain operators.
+An Expression is a meta-syntactic unit. An "Expression" unit will never appear
+within the AST. It acts as a junction.
 
-The hash for an Expression is as follows:
+=head3 ExpressionList
+
+An ExpressionList is a list of Expressions, generally separated by commas
+(though other separators may be appropriate at times or for different SQL
+dialects).
+
+The hash for an ExpressionList is as follows:
 
   {
-      _name => 'Expression',
-      _subtype => [ 'Value' | 'Function' | 'SubQuery' | . . . ],
+      name      => 'ExpressionList',
+      separator => ',',
+      elements  =>  Array of Expressions,
   }
+
+An ExpressionList is always rendered in SQL with parentheses around it.
 
 =head2 SQL clauses
 
@@ -445,12 +469,18 @@ The expected clauses are (name and structure):
 
 This corresponds to the SELECT clause of a SELECT statement.
 
-A select clause is composed as follows:
+A select clause unit is an array of one or more SelectComponent units.
 
-  SelectComponent := Expression [ [ AS ] String ]
+The hash for a SelectComponent unit is composed as follows:
 
-  SelectComponent
-  [ , SelectComponent ]*
+  {
+      name  => 'SelectComponent',
+      value => Expression,
+      [ as    => Identifier, ]
+  }
+
+The 'as' component is optional. Visitors may choose to make it required in
+certain situations.
 
 =head3 tables
 
@@ -459,30 +489,53 @@ FROM clause in a SELECT statement and the INSERT INTO/UPDATE/DELETE clauses in
 those respective statements. Depending on the _query metadata entry, the
 appropriate clause name will be used.
 
+A tables clause unit is an array of one or more TableComponent units.
+
 The tables clause has several RDBMS-specific variations. The AST will support
 all of them and it is up to the Visitor object constructing the actual SQL to
 validate and/or use what is provided as appropriate.
 
-A table clause is composed as follows:
+The hash for a TableJoin will be composed as follows:
 
-  TableIdentifier := Identifier [ [ AS ] String ]
-  JoinType := < LEFT|RIGHT [ OUTER ] > | INNER | CROSS
+  # TableJoin
+  {
+      name => 'TableJoin',
+      join => < LEFT|RIGHT [ OUTER ] > | INNER | CROSS | ',',
+      [ using => IdentifierList, ]
+      [ on    => ExpressionList, ]
+  }
 
-  TableIdentifier
-  [
-      < , TableIdentifier >
-    | <
-        [ JoinType ] JOIN TableIdentifier
-        [
-            < USING ( Identifier [ , Identifier ] ) >
-          | < ON [ ( ] Expression [ , Expression ] [ ) ] >
-        ]
-      >
-  ]*
+A TableJoin may not have both a 'using' element and an 'on' element. It may
+have one of them if the 'join' element is not equal to ',' but doesn't have to.
+If the 'join' element is equal to ',', then it may not have either a 'using' or
+an 'on' element.
+
+The hash for a TableIdentifier will be composed as follows:
+
+  # TableIdentifier
+  {
+      name  => 'TableIdentifier',
+      value => Identifier | SubQuery
+      [ join  => TableJoin, ]
+      [ as    => Identifier, ]
+  }
+
+The first TableComponent in a tables clause may not have a join element. All
+other TableComponent elements that do not have a join element will have a
+default join element of:
+
+  {
+      name => 'TableJoin',
+      join => ',',
+  }
+
+The 'as' component is optional. Visitors may choose to make it required in
+certain situations (such as MySQL requiring an alias for subqueries).
 
 Additionally, where aliases are provided for in the TableIdentifier, those
 aliases must be used as the tablename in subsequent Identifiers that identify a
-column of that table.
+column of that table. This may be enforceable by the AST or the Visitor. But, it
+is more likely that it will not be.
 
 =head3 where
 
@@ -509,17 +562,23 @@ A set clause is composed as follows:
 
 This corresponds to the optional list of columns in an INSERT statement.
 
-A columns clause is composed as follows:
+A columns clause is an IdentifierList and the unit is composed as follows:
 
-  ( Identifier [ , Identifier ]* )
+  columns => [
+      Identifier,
+      [ Identifier, ]*
+  ],
 
 =head3 values
 
 This corresponds to the VALUES clause in an INSERT statement.
 
-A values clause is composed as follows:
+A values clause is an ExpressionList and the unit is composed as follows.
 
-  ( Expression [ , Expression ]* )
+  values => [
+      Expression,
+      [ Expression, ]*
+  ],
 
 If there is a columns clause, the number of entries in the values clause must be
 equal to the number of entries in the columns clause.
@@ -572,6 +631,64 @@ an adjacency-list query.
 A connectby clause is composed as follows:
 
   Identifier, WhereExpression
+
+=head1 EXAMPLES
+
+The following are example SQL statements and a possible AST for each one.
+
+=over 4
+
+=item * SELECT 1
+
+  {
+      _query => 'select',
+      _ast_version => 0.0001,
+      select => [
+          {
+              name  => 'SelectComponent',
+              value => {
+                  name    => 'Value',
+                  subtype => 'number',
+                  value   => 1,
+              },
+          },
+      ],
+  }
+
+=item * SELECT NOW() AS time FROM dual AS duality
+
+  {
+      _query => 'select',
+      _ast_version => 0.0001,
+      select => [
+          {
+              name  => 'SelectComponent',
+              value => {
+                  name     => 'Function',
+                  function => 'NOW',
+              },
+              as => {
+                  name     => 'Identifier',
+                  element1 => 'time',
+              },
+          },
+      ],
+      tables => [
+          {
+              name => 'TablesComponent',
+              value => {
+	          name => 'Identifier',
+	          element1 => 'dual',
+	      },
+              as => {
+                  name     => 'Identifier',
+                  element1 => 'duality',
+              },
+	  },
+      ],
+  }
+
+=back
 
 =head1 AUTHORS
 
