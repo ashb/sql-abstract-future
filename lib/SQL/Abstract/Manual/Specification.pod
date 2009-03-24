@@ -78,6 +78,14 @@ Additional DML statements may be supported by specific Visitors (such as a
 MySQL visitor supporting REPLACE INTO). q.v. the relevant sections of this
 specification for details.
 
+=head2 Dialect-agnostic construction
+
+The AST will not attempt to be immediately readable to a human as SQL. In fact,
+due to the dialect differences, particularly in terms of which use operators and
+which use functions for a given action, the AST will ...
+
+XXX FILL ME IN LATER XXX
+
 =head1 COMPONENTS
 
 There are two major components to SQL::Abstract v2.
@@ -157,7 +165,7 @@ following keys:
 
 =over 4
 
-=item * name
+=item * type
 
 This indicates the structural unit that this hash is representing. While this
 specification provides for standard structural units, different Visitors may
@@ -179,7 +187,7 @@ responsible for validating that the elements are non-empty Strings.
 The hash will be structured as follows:
 
   {
-      name     => 'Identifier',
+      type     => 'Identifier',
       element1 => Scalar,
       element2 => Scalar,
       element3 => Scalar,
@@ -224,7 +232,7 @@ BindParameters are normally represented by a '?'.
 The hash will be structured as follows:
 
   {
-      name    => 'Value'
+      type    => 'Value'
       subtype => [ 'String' | 'Number' | 'Null' | 'BindParameter' ]
       value   => Scalar
   }
@@ -233,43 +241,38 @@ The provided subtypes are the ones that all Visitors are expected to support.
 Visitors may choose to support additional subtypes. Visitors are expected to
 throw an exception upon encountering an unknown subtype.
 
-=head3 Function
+=head3 Operator
 
-A Function is anything of the form C<< name( arglist ) >> where C<<name>> is a
-string and C<arglist> is an ExpressionList.
-
-Yes, a Subquery is legal as an argument for many functions. Some example
-functions are:
-
-=over 4
-
-=item * C<< MAX >>
-
-=item * C<< MIN >>
-
-=item * C<< SUM >>
-
-=item * C<< IF >>
-
-=back
+An Operator would be, in SQL dialect terms, a unary operator, a binary operator,
+a trinary operator, or a function. Since different dialects may have a given
+functionality as an operator or a function (such as CONCAT in MySQl vs. || in
+Oracle for string concatenation), they will be represented in the AST as generic
+operators.
 
 The hash will be structured as follows:
 
   {
-      name     => "Function",
-      function => String,
-      arglist  => ExpressionList,
+      type => 'Operator',
+      op   => String,
+      args => ExpressionList,
   }
 
-Functions have a cardinality, or expected number of arguments. Some functions,
+Operators have a cardinality, or expected number of arguments. Some operators,
 such as MAX(), have a cardinality of 1. Others, such as IF(), have a cardinality
 of N, meaning they can have any number of arguments greater than 0. Others, such
-as NOW(), have a cardinality of 0. Several functions with the same meaning may
+as NOW(), have a cardinality of 0. Several operators with the same meaning may
 have a different cardinality in different SQL dialects as different engines may
-allow different behaviors.
+allow different behaviors. As cardinality may differ between dialects, enforcing
+cardinality is necessarily left to the Visitor.
 
-As cardinality may differ between dialects, enforcing cardinality is necessarily
-left to the Visitor.
+Operators also have restrictions on the types of arguments they will accept. The
+first argument may or may not restricted in the same fashion as the other
+arguments. As with cardinality, this restriction will need to be managed by the
+Visitor.
+
+The operator name needs to take into account the possibility that the RDBMS may
+allow UDFs (User-Defined Functions) that have the same name as an operator, such
+as 'AND'. This will have to be managed by the Visitor.
 
 =head3 Subquery
 
@@ -283,128 +286,19 @@ impossible.
 
 Subqueries, when expressed in SQL, must be bounded by parentheses.
 
-=head3 Unary Operator
-
-A UnaryOperator takes a single argument on the RHS. The argument for a
-UnaryOperator is an Expression.
-
-Visitors are expected to support, at minimum, the following operators:
-
-=over 4
-
-=item * NOT X
-
-=item * ANY X
-
-=item * ALL X
-
-=item * SOME X
-
-=back
-
-The hash for a UnaryOperator is as follows:
-
-  {
-      name      => 'UnaryOperator'
-      operator  => [ .... ],
-      argument1 => Expression,
-  }
-
-Visitors may choose to support additional operators. Visitors are expected to
-throw an exception upon encountering an unknown operator.
-
-=head3 BinaryOperator
-
-A BinaryOperator takes two arguments (one on the LHS and one on the RHS). The
-arguments for a BinaryOperator are all Expressions.
-
-Visitors are expected to support, at minimum, the following operators:
-
-=over 4
-
-=item * X = Y
-
-=item * X != Y
-
-=item * X > Y
-
-=item * X < Y
-
-=item * X >= Y
-
-=item * X <= Y
-
-=item * X IS Y
-
-=item * X IN Y
-
-=item * X NOT IN Y
-
-=item * X AND Y
-
-=item * X OR Y
-
-=back
-
-(Note that an operator can comprise of what would be multiple tokens in a normal
-parsing effort.)
-
-Visitors may choose to support additional operators. Visitors are expected to
-throw an exception upon encountering an unknown operator.
-
-The hash for a BinaryOperator is as follows:
-
-  {
-      name      => 'BinaryOperator'
-      operator  => [ .... ],
-      argument1 => Expression,
-      argument2 => Expression,
-  }
-
-=head3 TrinaryOperator
-
-A TrinaryOperator takes three arguments. It generally is composed of two
-elements with one argument to the LHS, one to the RHS, and a third in the middle
-of the elements. The arguments for a TrinaryOperator are all Expressions.
-
-Visitors are expected to support, at minimum, the following operators:
-
-=over 4
-
-=item * X BETWEEN Y AND Z
-
-=back
-
-Visitors may choose to support additional operators. Visitors are expected to
-throw an exception upon encountering an unknown operator.
-
-The hash for a TrinaryOperator is as follows:
-
-  {
-      name      => 'TrinaryOperator'
-      operator  => [ .... ],
-      argument1 => Expression,
-      argument2 => Expression,
-      argument3 => Expression,
-  }
-
 =head3 Expression
 
 An Expression can be any one of the following:
 
 =over 4
 
+=item * Identifier
+
 =item * Value
 
-=item * Function
+=item * Operator
 
 =item * Subquery
-
-=item * UnaryOperator
-
-=item * BinaryOperator
-
-=item * TrinaryOperator
 
 =back
 
@@ -420,7 +314,7 @@ dialects).
 The hash for an ExpressionList is as follows:
 
   {
-      name      => 'ExpressionList',
+      type      => 'ExpressionList',
       separator => ',',
       elements  =>  Array of Expressions,
   }
@@ -474,7 +368,7 @@ A select clause unit is an array of one or more SelectComponent units.
 The hash for a SelectComponent unit is composed as follows:
 
   {
-      name  => 'SelectComponent',
+      type  => 'SelectComponent',
       value => Expression,
       [ as    => Identifier, ]
   }
@@ -499,7 +393,7 @@ The hash for a TableJoin will be composed as follows:
 
   # TableJoin
   {
-      name => 'TableJoin',
+      type => 'TableJoin',
       join => < LEFT|RIGHT [ OUTER ] > | INNER | CROSS | ',',
       [ using => IdentifierList, ]
       [ on    => ExpressionList, ]
@@ -514,7 +408,7 @@ The hash for a TableIdentifier will be composed as follows:
 
   # TableIdentifier
   {
-      name  => 'TableIdentifier',
+      type  => 'TableIdentifier',
       value => Identifier | SubQuery
       [ join  => TableJoin, ]
       [ as    => Identifier, ]
@@ -525,7 +419,7 @@ other TableComponent elements that do not have a join element will have a
 default join element of:
 
   {
-      name => 'TableJoin',
+      type => 'TableJoin',
       join => ',',
   }
 
@@ -645,9 +539,9 @@ The following are example SQL statements and a possible AST for each one.
       _ast_version => 0.0001,
       select => [
           {
-              name  => 'SelectComponent',
+              type  => 'SelectComponent',
               value => {
-                  name    => 'Value',
+                  type    => 'Value',
                   subtype => 'number',
                   value   => 1,
               },
@@ -662,26 +556,26 @@ The following are example SQL statements and a possible AST for each one.
       _ast_version => 0.0001,
       select => [
           {
-              name  => 'SelectComponent',
+              type  => 'SelectComponent',
               value => {
-                  name     => 'Function',
+                  type     => 'Function',
                   function => 'NOW',
               },
               as => {
-                  name     => 'Identifier',
+                  type     => 'Identifier',
                   element1 => 'time',
               },
           },
       ],
       tables => [
           {
-              name => 'TablesComponent',
+              type => 'TablesComponent',
               value => {
-	          name => 'Identifier',
+	          type => 'Identifier',
 	          element1 => 'dual',
 	      },
               as => {
-                  name     => 'Identifier',
+                  type     => 'Identifier',
                   element1 => 'duality',
               },
 	  },
