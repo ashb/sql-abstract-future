@@ -1,6 +1,29 @@
 use MooseX::Declare;
 
 class SQL::Abstract::Compat {
+
+  use Moose::Util::TypeConstraints;
+  use MooseX::Types -declare => [qw/LogicEnum/];
+
+  enum LogicEnum, qw(OR AND);
+
+  clean;
+
+  has logic => (
+    is => 'rw',
+    isa => LogicEnum,
+    default => 'AND'
+  );
+
+  method select(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
+                Str|ScalarRef|ArrayRef|HashRef $where?,
+                Str|ScalarRef|ArrayRef|HashRef $order?) {
+    return ("", );
+  }
+
+  method where(Str|ScalarRef|ArrayRef|HashRef $where?,
+               Str|ScalarRef|ArrayRef|HashRef $order?) {
+  }
 }
 
 =head1 NAME
