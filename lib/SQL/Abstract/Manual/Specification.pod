@@ -82,9 +82,11 @@ specification for details.
 
 The AST will not attempt to be immediately readable to a human as SQL. In fact,
 due to the dialect differences, particularly in terms of which use operators and
-which use functions for a given action, the AST will ...
-
-XXX FILL ME IN LATER XXX
+which use functions for a given action, the AST will provide simple units. It is
+the responsibility of the Visitor to provide the appropriate SQL. Furthermore,
+the AST will be very generic and only provide hints for a subset of SQL. If a
+Visitor is sufficiently intelligent, pretty SQL may be emitted, but that is not
+the goal of this AST.
 
 =head1 COMPONENTS
 
@@ -309,7 +311,7 @@ within the AST. It acts as a junction.
 
 An ExpressionList is a list of Expressions, generally separated by commas
 (though other separators may be appropriate at times or for different SQL
-dialects).
+dialects). An null separator may also be used.
 
 The hash for an ExpressionList is as follows:
 
@@ -370,7 +372,7 @@ The hash for a SelectComponent unit is composed as follows:
   {
       type  => 'SelectComponent',
       value => Expression,
-      [ as    => Identifier, ]
+      as    => String,
   }
 
 The 'as' component is optional. Visitors may choose to make it required in
@@ -383,53 +385,43 @@ FROM clause in a SELECT statement and the INSERT INTO/UPDATE/DELETE clauses in
 those respective statements. Depending on the _query metadata entry, the
 appropriate clause name will be used.
 
-A tables clause unit is an array of one or more TableComponent units.
-
 The tables clause has several RDBMS-specific variations. The AST will support
 all of them and it is up to the Visitor object constructing the actual SQL to
 validate and/or use what is provided as appropriate.
 
-The hash for a TableJoin will be composed as follows:
+A TableJoin is a junction of the following elements:
 
-  # TableJoin
-  {
-      type => 'TableJoin',
-      join => < LEFT|RIGHT [ OUTER ] > | INNER | CROSS | ',',
-      [ using => IdentifierList, ]
-      [ on    => ExpressionList, ]
-  }
+=over 4
 
-A TableJoin may not have both a 'using' element and an 'on' element. It may
-have one of them if the 'join' element is not equal to ',' but doesn't have to.
-If the 'join' element is equal to ',', then it may not have either a 'using' or
-an 'on' element.
+=item * TableIdentifier
+
+=item * Operator
+
+=back
 
 The hash for a TableIdentifier will be composed as follows:
 
   # TableIdentifier
   {
       type  => 'TableIdentifier',
-      value => Identifier | SubQuery
-      [ join  => TableJoin, ]
-      [ as    => Identifier, ]
+      value => Expression,
+      as    => String,
   }
 
-The first TableComponent in a tables clause may not have a join element. All
-other TableComponent elements that do not have a join element will have a
-default join element of:
+The value should be either an Identifier or a SubQuery. 
 
+The hash for an Operator within a tables clause will be composed as follows:
+
+  # Operator
   {
-      type => 'TableJoin',
-      join => ',',
+      type => 'Operator',
+      op   => '< LEFT|RIGHT|FULL [ OUTER ] > | INNER | CROSS',
+      on   => Expression,
   }
 
-The 'as' component is optional. Visitors may choose to make it required in
-certain situations (such as MySQL requiring an alias for subqueries).
-
-Additionally, where aliases are provided for in the TableIdentifier, those
-aliases must be used as the tablename in subsequent Identifiers that identify a
-column of that table. This may be enforceable by the AST or the Visitor. But, it
-is more likely that it will not be.
+A USING clause is syntactic sugar for an ON clause and, as such, is not provided
+for by the AST. A join of a comma is identical to a CROSS JOIN. The on clause is
+optional.
 
 =head3 where
 
@@ -567,20 +559,76 @@ The following are example SQL statements and a possible AST for each one.
               },
           },
       ],
-      tables => [
-          {
-              type => 'TablesComponent',
-              value => {
-	          type => 'Identifier',
-	          element1 => 'dual',
-	      },
-              as => {
-                  type     => 'Identifier',
-                  element1 => 'duality',
-              },
-	  },
-      ],
+      tables => {
+          type => 'TableIdentifier',
+          value => {
+              type => 'Identifier',
+              element1 => 'dual',
+          },
+          as => 'duality',
+      },
   }
+
+=item * SELECT 1 FROM foo LEFT OUTER JOIN bar ON ( foo.col1 = bar.col2 )
+
+  {
+      _query => 'select',
+      _ast_version => 0.0001,
+      select => [
+          {
+              type  => 'SelectComponent',
+              value => {
+                  type     => 'Value',
+                  subtype => 'number',
+                  value   => 1,
+              },
+          },
+      ],
+      tables => {
+          type => 'Operator',
+          op   => 'LEFT OUTER',
+          args => [
+              {
+                  type => 'TableIdentifier',
+                  value => {
+                      type => 'Identifier',
+                      element1 => 'foo',
+                  },
+              },
+              {
+                  type => 'TableIdentifier',
+                  value => {
+                      type => 'Identifier',
+                      element1 => 'bar',
+                  },
+              },
+          ],
+          on => {
+              type => 'Operator',
+              op   => '=',
+              args => [
+                  {
+                      type     => 'Identifier',
+                      element1 => 'foo',
+                      element2 => 'col1',
+                  },
+                  {
+                      type     => 'Identifier',
+                      element1 => 'bar',
+                      element2 => 'col2',
+                  },
+              ],
+          },
+      },
+  }
+
+=back
+
+=head1 TODO
+
+=over 4
+
+=item * sproc unit
 
 =back
 
