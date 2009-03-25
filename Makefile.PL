@@ -12,4 +12,5 @@ requires 'MooseX::Types::Structured' => '0.9';
 test_requires 'Test::More';
 test_requires 'Test::Differences';
 
+auto_provides_class();
 WriteAll;
