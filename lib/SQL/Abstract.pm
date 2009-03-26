@@ -25,7 +25,9 @@ class SQL::Abstract {
 
   our %BINOP_MAP = (
     '>' => '>',
+    '>=' => '>=',
     '<' => '<',
+    '<=' => '<=',
     '==' => '=',
     '!=' => '!=',
     # LIKE is always "field LIKE <value>"
