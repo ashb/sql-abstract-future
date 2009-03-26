@@ -111,6 +111,45 @@ one. The SQL used is from the MySQL dialect.
       },
   }
 
+=item SELECT * FROM foo WHERE name = 'John'
+
+  {
+      type => 'select',
+      ast_version => 0.0001,
+      select => [
+          {
+              type  => 'SelectComponent',
+              value => {
+                  type     => 'Value',
+                  subtype => 'number',
+                  value   => 1,
+              },
+          },
+      ],
+      tables => {
+          type => 'TableIdentifier',
+          value => {
+              type => 'Identifier',
+              element1 => 'foo',
+          },
+      },
+      where => {
+          type => 'Operator',
+          op   => '=',
+          args => [
+              {
+                  type     => 'Identifier',
+                  element1 => 'name',
+              },
+              {
+                  type     => 'Value',
+                  subtype  => 'String',
+                  element1 => 'John',
+              },
+          ],
+      }
+  }
+
 =back
 
 =head1 AUTHORS
