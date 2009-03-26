@@ -8,7 +8,7 @@ class SQL::Abstract {
   use Moose::Util::TypeConstraints;
   use MooseX::Types::Moose qw/ArrayRef Str Int HashRef CodeRef/;
   use MooseX::AttributeHelpers;
-  use SQL::Abstract::Types qw/NameSeparator QuoteChars AST HashAST ArrayAST/;
+  use SQL::Abstract::Types qw/NameSeparator QuoteChars AST/;
   use Devel::PartialDump qw/dump/;
 
   clean;
@@ -121,7 +121,7 @@ class SQL::Abstract {
   }
 
   # Main entry point
-  method generate(ClassName $class: HashAST $ast) {
+  method generate(ClassName $class: AST $ast) {
     my $ver = $ast->{-ast_version};
     croak "SQL::Abstract AST version not specified"
       unless defined $ver;
@@ -138,14 +138,7 @@ class SQL::Abstract {
 
   method dispatch (AST $ast) {
 
-
-    # I want multi methods!
-    my $tag;
-    if (is_ArrayAST($ast)) {
-      confess "FIX: " . dump($ast); 
-    } else {
-      $tag = "_" . $ast->{-type};
-    }
+    my $tag = "_" . $ast->{-type};
     
     my $meth = $self->can($tag) || croak "Unknown tag '$tag'";
     return $meth->($self, $ast);

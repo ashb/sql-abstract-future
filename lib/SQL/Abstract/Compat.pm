@@ -3,9 +3,12 @@ use MooseX::Declare;
 class SQL::Abstract::Compat {
 
   use Moose::Util::TypeConstraints;
-  use MooseX::Types -declare => [qw/LogicEnum/];
+  use MooseX::Types::Moose qw/Str ScalarRef ArrayRef HashRef/;
+  use MooseX::Types -declare => [qw/LogicEnum WhereType/];
 
   enum LogicEnum, qw(OR AND);
+
+  subtype WhereType, as Str;
 
   clean;
 
@@ -15,15 +18,26 @@ class SQL::Abstract::Compat {
     default => 'AND'
   );
 
+
+
   method select(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
                 Str|ScalarRef|ArrayRef|HashRef $where?,
                 Str|ScalarRef|ArrayRef|HashRef $order?) {
     return ("", );
   }
 
-  method where(Str|ScalarRef|ArrayRef|HashRef $where?,
+  method where(Str|ScalarRef|ArrayRef|HashRef $where,
                Str|ScalarRef|ArrayRef|HashRef $order?) {
+
+    my $ast = {
+      -type => 'expr',
+    };
   }
+
+  method recurse_where(LogicEsnum $where) {
+    
+  }
+
 }
 
 =head1 NAME

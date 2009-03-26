@@ -8,7 +8,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   use Moose::Util::TypeConstraints;
   use MooseX::Types::Moose qw/ArrayRef Str Int Ref HashRef/;
   use MooseX::AttributeHelpers;
-  use SQL::Abstract::Types qw/AST ArrayAST HashAST/;
+  use SQL::Abstract::Types qw/AST/;
   use Devel::PartialDump qw/dump/;
 
   clean;
@@ -31,7 +31,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     };
   }
 
-  method _select(HashAST $ast) {
+  method _select(AST $ast) {
     # Default to requiring columns and from.
     # DB specific ones (i.e. mysql/Pg) can not require the FROM part with a bit
     # of refactoring
@@ -114,7 +114,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return $output;
   }
 
-  method _name(HashAST $ast) {
+  method _name(AST $ast) {
     my @names = @{$ast->{args}};
 
     my $sep = $self->name_separator;
@@ -158,7 +158,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
   }
 
-  method _value(HashAST $ast) {
+  method _value(AST $ast) {
 
     $self->add_bind($ast->{value});
     return "?";
@@ -179,7 +179,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
 
   # Perhaps badly named. handles 'and' and 'or' clauses
-  method _recurse_where(HashAST $ast) {
+  method _recurse_where(AST $ast) {
 
     my $op = $ast->{op};
 
@@ -190,7 +190,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
     my @output;
     foreach ( @{$ast->{args}} ) {
-      croak "invalid component in where clause: $_" unless is_HashAST($_);
+      croak "invalid component in where clause: $_" unless is_AST($_);
 
       if ($_->{-type} eq 'expr' && $_->{op} =~ /^(and|or)$/) {
         my $sub_prio = $SQL::Abstract::PRIO{$1}; 
@@ -208,7 +208,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return join(" $OP ", @output);
   }
 
-  method _expr(HashAST $ast) {
+  method _expr(AST $ast) {
     my $op = $ast->{-type};
 
     $op = $ast->{op} if $op eq 'expr';
@@ -225,7 +225,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
    
   }
 
-  method _binop(HashAST $ast) {
+  method _binop(AST $ast) {
     my ($lhs, $rhs) = @{$ast->{args}};
     my $op = $ast->{op};
 
@@ -235,7 +235,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     );
   }
 
-  method _in(HashAST $ast) {
+  method _in(AST $ast) {
   
     my ($field,@values) = @{$ast->{args}};
 
