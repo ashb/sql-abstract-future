@@ -327,14 +327,8 @@ An ExpressionList is always rendered in SQL with parentheses around it.
 
 =head3 Nesting
 
-A Nesting is, essentially, another set of parentheses.
-
-The hash for a Nesting is as follows:
-
-  {
-      type => 'Nesting',
-      args => Array of Expressions,
-  }
+There is no specific operator or nodetype for nesting. Instead, nesting is
+explicitly specified by node descent in the AST. 
 
 =head2 SQL clauses
 

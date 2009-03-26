@@ -190,41 +190,36 @@ one. The SQL used is from the MySQL dialect.
                   ],
               },
               {
-                  type => 'Nesting',
+                  type => 'Operator',
+                  op   => 'OR',
                   args => [
                       {
                           type => 'Operator',
-                          op   => 'OR',
+                          op   => '=',
                           args => [
                               {
-                                  type => 'Operator',
-                                  op   => '=',
-                                  args => [
-                                      {
-                                          type     => 'Identifier',
-                                          element1 => 'title',
-                                      },
-                                      {
-                                          type     => 'Value',
-                                          subtype  => 'String',
-                                          element1 => 'Mr',
-                                      },
-                                  ],
+                                  type     => 'Identifier',
+                                  element1 => 'title',
                               },
                               {
-                                  type => 'Operator',
-                                  op   => '=',
-                                  args => [
-                                      {
-                                          type     => 'Identifier',
-                                          element1 => 'abbrev',
-                                      },
-                                      {
-                                          type     => 'Value',
-                                          subtype  => 'String',
-                                          element1 => 'Dr',
-                                      },
-                                  ],
+                                  type     => 'Value',
+                                  subtype  => 'String',
+                                  element1 => 'Mr',
+                              },
+                          ],
+                      },
+                      {
+                          type => 'Operator',
+                          op   => '=',
+                          args => [
+                              {
+                                  type     => 'Identifier',
+                                  element1 => 'abbrev',
+                              },
+                              {
+                                  type     => 'Value',
+                                  subtype  => 'String',
+                                  element1 => 'Dr',
                               },
                           ],
                       },
@@ -234,6 +229,86 @@ one. The SQL used is from the MySQL dialect.
       },
   }
  
+=item SELECT COUNT(*) FROM foo WHERE ( name = 'John' AND title = 'Mr' ) OR abbrev = 'Dr'
+
+  {
+      type => 'select',
+      ast_version => 0.0001,
+      select => [
+          {
+              type  => 'SelectComponent',
+              value => {
+                  type     => 'Identifier',
+                  element1 => '*',
+              },
+          },
+      ],
+      tables => {
+          type => 'TableIdentifier',
+          value => {
+              type => 'Identifier',
+              element1 => 'foo',
+          },
+      },
+      where => {
+          type => 'Operator',
+          op   => 'OR',
+          args => [
+              {
+                  type => 'Operator',
+                  op   => 'AND',
+                  args => [
+                      {
+                          type => 'Operator',
+                          op   => '=',
+                          args => [
+                              {
+                                  type     => 'Identifier',
+                                  element1 => 'name',
+                              },
+                              {
+                                  type     => 'Value',
+                                  subtype  => 'String',
+                                  element1 => 'John',
+                              },
+                          ],
+                      },
+                      {
+                          type => 'Operator',
+                          op   => '=',
+                          args => [
+                              {
+                                  type     => 'Identifier',
+                                  element1 => 'title',
+                              },
+                              {
+                                  type     => 'Value',
+                                  subtype  => 'String',
+                                  element1 => 'Mr',
+                              },
+                          ],
+                      },
+                  ],
+              },
+              {
+                  type => 'Operator',
+                  op   => '=',
+                  args => [
+                      {
+                          type     => 'Identifier',
+                          element1 => 'abbrev',
+                      },
+                      {
+                          type     => 'Value',
+                          subtype  => 'String',
+                          element1 => 'Dr',
+                      },
+                  ],
+              },
+          ],
+      },
+  }
+
 =back
 
 =head1 AUTHORS
