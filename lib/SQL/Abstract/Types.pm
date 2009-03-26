@@ -1,8 +1,11 @@
 use MooseX::Declare;
 class SQL::Abstract::Types {
   use Moose::Util::TypeConstraints;
-  use MooseX::Types -declare => [qw/NameSeparator QuoteChars AST/];
   use MooseX::Types::Moose qw/ArrayRef Str Int Ref HashRef/;
+
+  clean;
+
+  use MooseX::Types -declare => [qw/NameSeparator QuoteChars AST/];
 
   subtype AST, as HashRef,
     where { exists $_->{-type} && is_Str($_->{-type}) },
