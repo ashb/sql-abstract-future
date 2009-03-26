@@ -118,21 +118,20 @@ enforcing that dialect's rules.
 
 The AST will be a HoHo..oH (hash of hash of ... of  hashes). The keys to the
 outermost hash will be the various clauses of a SQL statement, plus some
-metadata keys. All metadata keys will be identifiable as such by being prefixed
-with an underscore. All keys will be in lowercase.
+metadata keys.
 
 =head2 Metadata keys
 
 These are the additional metadata keys that the AST provides for.
 
-=head3 _query
+=head3 type
 
 This denotes what kind of query this AST should be interpreted as. Different
-Visitors may accept additional values for _query. For example, a MySQL Visitor
-may choose to accept 'replace' for REPLACE INTO. If a _query value is
+Visitors may accept additional values for type. For example, a MySQL Visitor
+may choose to accept 'replace' for REPLACE INTO. If a type value is
 unrecognized by the Visitor, the Visitor is expected to throw an error.
 
-All Visitors are expected to handle the following values for _query:
+All Visitors are expected to handle the following values for type:
 
 =over 4
 
@@ -154,10 +153,10 @@ This is a DELETE statement.
 
 =back
 
-=head3 _version
+=head3 ast_version
 
 This denotes the version of the AST. Different versions will indicate different
-capabilities provided. Visitors will choose to respect the _version as needed
+capabilities provided. Visitors will choose to respect the ast_version as needed
 and desired.
 
 =head2 Structural units
@@ -278,7 +277,7 @@ as 'AND'. This will have to be managed by the Visitor.
 
 =head3 Subquery
 
-A Subquery is another AST whose _query metadata parameter is set to "SELECT".
+A Subquery is another AST whose type metadata parameter is set to "SELECT".
 
 Most places that a Subquery can be used would require a single value to be
 returned (single column, single row), but that is not something that the AST can
@@ -382,7 +381,7 @@ certain situations.
 
 This is a list of tables that this clause is affecting. It corresponds to the
 FROM clause in a SELECT statement and the INSERT INTO/UPDATE/DELETE clauses in
-those respective statements. Depending on the _query metadata entry, the
+those respective statements. Depending on the type metadata entry, the
 appropriate clause name will be used.
 
 The tables clause has several RDBMS-specific variations. The AST will support
@@ -427,12 +426,7 @@ optional.
 
 This corresponds to the WHERE clause in a SELECT, UPDATE, or DELETE statement.
 
-A where clause is composed as follows:
-
-  WhereOperator := AND | OR
-  WhereExpression := Expression | Expression WhereOperator Expression
-
-  WhereExpression
+A where clause is composed of an Expression.
 
 =head3 set
 
@@ -517,112 +511,6 @@ an adjacency-list query.
 A connectby clause is composed as follows:
 
   Identifier, WhereExpression
-
-=head1 EXAMPLES
-
-The following are example SQL statements and a possible AST for each one.
-
-=over 4
-
-=item * SELECT 1
-
-  {
-      _query => 'select',
-      _ast_version => 0.0001,
-      select => [
-          {
-              type  => 'SelectComponent',
-              value => {
-                  type    => 'Value',
-                  subtype => 'number',
-                  value   => 1,
-              },
-          },
-      ],
-  }
-
-=item * SELECT NOW() AS time FROM dual AS duality
-
-  {
-      _query => 'select',
-      _ast_version => 0.0001,
-      select => [
-          {
-              type  => 'SelectComponent',
-              value => {
-                  type     => 'Function',
-                  function => 'NOW',
-              },
-              as => {
-                  type     => 'Identifier',
-                  element1 => 'time',
-              },
-          },
-      ],
-      tables => {
-          type => 'TableIdentifier',
-          value => {
-              type => 'Identifier',
-              element1 => 'dual',
-          },
-          as => 'duality',
-      },
-  }
-
-=item * SELECT 1 FROM foo LEFT OUTER JOIN bar ON ( foo.col1 = bar.col2 )
-
-  {
-      _query => 'select',
-      _ast_version => 0.0001,
-      select => [
-          {
-              type  => 'SelectComponent',
-              value => {
-                  type     => 'Value',
-                  subtype => 'number',
-                  value   => 1,
-              },
-          },
-      ],
-      tables => {
-          type => 'Operator',
-          op   => 'LEFT OUTER',
-          args => [
-              {
-                  type => 'TableIdentifier',
-                  value => {
-                      type => 'Identifier',
-                      element1 => 'foo',
-                  },
-              },
-              {
-                  type => 'TableIdentifier',
-                  value => {
-                      type => 'Identifier',
-                      element1 => 'bar',
-                  },
-              },
-          ],
-          on => {
-              type => 'Operator',
-              op   => '=',
-              args => [
-                  {
-                      type     => 'Identifier',
-                      element1 => 'foo',
-                      element2 => 'col1',
-                  },
-                  {
-                      type     => 'Identifier',
-                      element1 => 'bar',
-                      element2 => 'col2',
-                  },
-              ],
-          },
-      },
-  }
-
-=back
 
 =head1 TODO
 

@@ -1,0 +1,124 @@
+=head1 NAME
+
+SQL::Abstract::Manual::Specification
+
+=head1 DESCRIPTION
+
+These are the examples for the AST
+
+=head1 EXAMPLES
+
+The following are example SQL statements and the AST that would represent each
+one. The SQL used is from the MySQL dialect.
+
+=over 4
+
+=item * SELECT 1
+
+  {
+      type => 'select',
+      ast_version => 0.0001,
+      select => [
+          {
+              type  => 'SelectComponent',
+              value => {
+                  type    => 'Value',
+                  subtype => 'number',
+                  value   => 1,
+              },
+          },
+      ],
+  }
+
+=item * SELECT NOW() AS time FROM dual AS duality
+
+  {
+      type => 'select',
+      ast_version => 0.0001,
+      select => [
+          {
+              type  => 'SelectComponent',
+              value => {
+                  type     => 'Function',
+                  function => 'NOW',
+              },
+              as => {
+                  type     => 'Identifier',
+                  element1 => 'time',
+              },
+          },
+      ],
+      tables => {
+          type => 'TableIdentifier',
+          value => {
+              type => 'Identifier',
+              element1 => 'dual',
+          },
+          as => 'duality',
+      },
+  }
+
+=item * SELECT 1 FROM foo LEFT OUTER JOIN bar ON ( foo.col1 = bar.col2 )
+
+  {
+      type => 'select',
+      ast_version => 0.0001,
+      select => [
+          {
+              type  => 'SelectComponent',
+              value => {
+                  type     => 'Value',
+                  subtype => 'number',
+                  value   => 1,
+              },
+          },
+      ],
+      tables => {
+          type => 'Operator',
+          op   => 'LEFT OUTER',
+          args => [
+              {
+                  type => 'TableIdentifier',
+                  value => {
+                      type => 'Identifier',
+                      element1 => 'foo',
+                  },
+              },
+              {
+                  type => 'TableIdentifier',
+                  value => {
+                      type => 'Identifier',
+                      element1 => 'bar',
+                  },
+              },
+          ],
+          on => {
+              type => 'Operator',
+              op   => '=',
+              args => [
+                  {
+                      type     => 'Identifier',
+                      element1 => 'foo',
+                      element2 => 'col1',
+                  },
+                  {
+                      type     => 'Identifier',
+                      element1 => 'bar',
+                      element2 => 'col2',
+                  },
+              ],
+          },
+      },
+  }
+
+=back
+
+=head1 AUTHORS
+
+robkinyon: Rob Kinyon C<< <rkinyon@cpan.org> >>
+
+=head1 LICENSE
+
+You may distribute this code under the same terms as Perl itself.
+
+=cut
