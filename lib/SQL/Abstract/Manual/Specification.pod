@@ -200,6 +200,9 @@ given element exists, then it must be defined and of non-zero length.
 Visitors are expected to, by default, quote all identifiers according to the SQL
 dialect's quoting scheme.
 
+Any of the elements may be '*', as in SELECT * or SELECT COUNT(*). Visitors must
+be careful to I<not> quote asterisks.
+
 =head3 Value
 
 A Value is a Perl scalar. Depending on the type, a Visitor may be able to make
@@ -321,6 +324,17 @@ The hash for an ExpressionList is as follows:
   }
 
 An ExpressionList is always rendered in SQL with parentheses around it.
+
+=head3 Nesting
+
+A Nesting is, essentially, another set of parentheses.
+
+The hash for a Nesting is as follows:
+
+  {
+      type => 'Nesting',
+      args => Array of Expressions,
+  }
 
 =head2 SQL clauses
 
