@@ -3,7 +3,7 @@ use warnings;
 
 use SQL::Abstract::AST::Compat;
 
-use Test::More tests => 8;
+use Test::More tests => 11;
 use Test::Differences;
 
 ok(my $visitor = SQL::Abstract::AST::Compat->new);
@@ -114,4 +114,38 @@ eq_or_diff
     ],
   },
   "foo => [ 1, 'bar' ]";
+
+eq_or_diff
+  $visitor->generate({ foo => { -in => [ 1, 'bar' ] } }),
+  { -type => 'expr',
+    op => 'in',
+    args => [
+      $foo_id,
+      { -type => 'value', value => 1 },
+      { -type => 'value', value => 'bar' },
+    ]
+  },
+  "foo => { -in => [ 1, 'bar' ] }";
+
+eq_or_diff
+  $visitor->generate({ foo => { -not_in => [ 1, 'bar' ] } }),
+  { -type => 'expr',
+    op => 'not_in',
+    args => [
+      $foo_id,
+      { -type => 'value', value => 1 },
+      { -type => 'value', value => 'bar' },
+    ]
+  },
+  "foo => { -not_in => [ 1, 'bar' ] }";
+
+eq_or_diff
+  $visitor->generate({ foo => { -in => [ ] } }),
+  { -type => 'expr',
+    op => 'in',
+    args => [
+      $foo_id,
+    ]
+  },
+  "foo => { -in => [ ] }";
 

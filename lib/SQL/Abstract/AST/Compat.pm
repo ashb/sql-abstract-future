@@ -100,7 +100,20 @@ class SQL::Abstract::AST::Compat {
       confess "Don't know how to handle " . dump($value) . " (too many keys)"
         if @rest;
 
-      $ret->{op} = $op;
+      # TODO: Validate the op?
+      if ($op =~ /^-([a-z_]+)$/i) {
+        $ret->{op} = lc $1;
+
+        if (is_ArrayRef($value->{$op})) {
+          push @{$ret->{args}}, $self->value($_)
+            for @{$value->{$op}};
+          return $ret;
+        }
+      }
+      else {
+        $ret->{op} = $op;
+      }
+
       push @{$ret->{args}}, $self->value($value->{$op});
 
     }
@@ -129,12 +142,10 @@ class SQL::Abstract::AST::Compat {
   }
 
   method value($value) returns (AST) {
-    if (is_Str($value)) {
-      return { -type => 'value', value => $value };
-    }
-    else {
-      confess "Don't know how to handle " . dump($value);
-    }
+    return { -type => 'value', value => $value }
+      if is_Str($value);
+
+    confess "Don't know how to handle terminal value " . dump($value);
   }
 
 
