@@ -3,16 +3,19 @@ use warnings;
 
 use SQL::Abstract::AST::Compat;
 
-use Test::More tests => 6;
+use Test::More tests => 8;
 use Test::Differences;
 
 ok(my $visitor = SQL::Abstract::AST::Compat->new);
+
+my $foo_id = { -type => 'name', args => [qw/foo/] };
+my $bar_id = { -type => 'name', args => [qw/bar/] };
 
 my $foo_eq_1 = {
   -type => 'expr',
   op => '==',
   args => [
-    { -type => 'name', args => [qw/foo/] }, 
+    $foo_id,
     { -type => 'value', value => 1 }
   ]
 };
@@ -27,7 +30,7 @@ my $bar_eq_str = {
   -type => 'expr',
   op => '==',
   args => [
-    { -type => 'name', args => [qw/bar/] }, 
+    $bar_id,
     { -type => 'value', value => 'some str' }
   ]
 };
@@ -82,4 +85,33 @@ eq_or_diff
       $foo_eq_1,
     ]
   },
-  "-and as first element of array";
+  "-and as first element of array + hash";
+
+eq_or_diff
+  $visitor->generate({ foo => { '!=' => 'bar' } }),
+  { -type => 'expr',
+    op => '!=',
+    args => [
+      $foo_id,
+      { -type => 'value', value => 'bar' },
+    ]
+  },
+  "foo => { '!=' => 'bar' }";
+
+eq_or_diff
+  $visitor->generate({ foo => [ 1, 'bar' ] }),
+  { -type => 'expr',
+    op => 'or',
+    args => [
+      $foo_eq_1,
+      { -type => 'expr',
+        op => '==',
+        args => [
+          $foo_id,
+          { -type => 'value', value => 'bar' },
+        ]
+      },
+    ],
+  },
+  "foo => [ 1, 'bar' ]";
+

@@ -95,11 +95,46 @@ class SQL::Abstract::AST::Compat {
       ],
     };
 
-    if (is_Str($value)) {
-      push @{$ret->{args}}, { -type => 'value', value => $value };
+    if (is_HashRef($value)) {
+      my ($op, @rest) = keys %$value;
+      confess "Don't know how to handle " . dump($value) . " (too many keys)"
+        if @rest;
+
+      $ret->{op} = $op;
+      push @{$ret->{args}}, $self->value($value->{$op});
+
+    }
+    elsif (is_ArrayRef($value)) {
+      # Return an or clause, sort of.
+      return {
+        -type => 'expr',
+        op => 'or',
+        args => [ map {
+          {
+            -type => 'expr',
+            op => '==',
+            args => [
+              { -type => 'name', args => [$key] },
+              $self->value($_)
+            ],
+          }
+        } @$value ]
+      };
+    }
+    else {
+      push @{$ret->{args}}, $self->value($value);
     }
 
     return $ret;
+  }
+
+  method value($value) returns (AST) {
+    if (is_Str($value)) {
+      return { -type => 'value', value => $value };
+    }
+    else {
+      confess "Don't know how to handle " . dump($value);
+    }
   }
 
 
