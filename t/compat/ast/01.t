@@ -3,22 +3,17 @@ use warnings;
 
 use SQL::Abstract::AST::Compat;
 
-use Test::More tests => 11;
+use Test::More tests => 12;
 use Test::Differences;
 
 ok(my $visitor = SQL::Abstract::AST::Compat->new);
 
+
 my $foo_id = { -type => 'name', args => [qw/foo/] };
 my $bar_id = { -type => 'name', args => [qw/bar/] };
 
-my $foo_eq_1 = {
-  -type => 'expr',
-  op => '==',
-  args => [
-    $foo_id,
-    { -type => 'value', value => 1 }
-  ]
-};
+my $foo_eq_1 = field_op_value($foo_id, '==', 1);
+my $bar_eq_str = field_op_value($bar_id, '==', 'some str');
 
 eq_or_diff
   $visitor->generate({ foo => 1 }),
@@ -26,14 +21,6 @@ eq_or_diff
   "Single value hash";
 
 
-my $bar_eq_str = {
-  -type => 'expr',
-  op => '==',
-  args => [
-    $bar_id,
-    { -type => 'value', value => 'some str' }
-  ]
-};
 
 eq_or_diff
   $visitor->generate({ foo => 1, bar => 'some str' }),
@@ -89,13 +76,7 @@ eq_or_diff
 
 eq_or_diff
   $visitor->generate({ foo => { '!=' => 'bar' } }),
-  { -type => 'expr',
-    op => '!=',
-    args => [
-      $foo_id,
-      { -type => 'value', value => 'bar' },
-    ]
-  },
+  field_op_value($foo_id, '!=', 'bar'),
   "foo => { '!=' => 'bar' }";
 
 eq_or_diff
@@ -104,13 +85,7 @@ eq_or_diff
     op => 'or',
     args => [
       $foo_eq_1,
-      { -type => 'expr',
-        op => '==',
-        args => [
-          $foo_id,
-          { -type => 'value', value => 'bar' },
-        ]
-      },
+      field_op_value($foo_id, '==', 'bar'),
     ],
   },
   "foo => [ 1, 'bar' ]";
@@ -149,3 +124,60 @@ eq_or_diff
   },
   "foo => { -in => [ ] }";
 
+my $worker_eq = sub {
+  return { 
+    -type => 'expr',
+    op => '==',
+    args => [
+      { -type => 'name', args => ['worker'] },
+      { -type => 'value', value => $_[0] },
+    ],
+  }
+};
+eq_or_diff
+  $visitor->generate( {
+    requestor => 'inna',
+    worker => ['nwiger', 'rcwe', 'sfz'],
+    status => { '!=', 'completed' }
+  } ),
+  { -type => 'expr',
+    op => 'and',
+    args => [
+      field_op_value(qw/status != completed/), 
+      { -type => 'expr',
+        op => 'or',
+        args => [
+          field_op_value(qw/worker == nwiger/), 
+          field_op_value(qw/worker == rcwe/), 
+          field_op_value(qw/worker == sfz/), 
+        ]
+      },
+      field_op_value(qw/requestor == inna/),
+    ]
+  },
+  "complex expr #1";
+
+
+
+sub field_op_value {
+  my ($field, $op, $value) = @_;
+
+  $field = ref $field eq 'HASH'
+         ? $field
+         : ref $field eq 'ARRAY' 
+         ? { -type => 'name', args => $field } 
+         : { -type => 'name', args => [$field] };
+
+  $value = ref $value eq 'HASH'
+         ? $value
+         : { -type => 'value', value => $value };
+
+  return {
+    -type => 'expr',
+    op => $op,
+    args => [
+      $field,
+      $value
+    ]
+  };
+}
