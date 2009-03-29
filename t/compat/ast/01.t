@@ -16,14 +16,14 @@ my $foo_eq_1 = field_op_value($foo_id, '==', 1);
 my $bar_eq_str = field_op_value($bar_id, '==', 'some str');
 
 eq_or_diff
-  $visitor->generate({ foo => 1 }),
+  $visitor->recurse_where({ foo => 1 }),
   $foo_eq_1,
   "Single value hash";
 
 
 
 eq_or_diff
-  $visitor->generate({ foo => 1, bar => 'some str' }),
+  $visitor->recurse_where({ foo => 1, bar => 'some str' }),
   { -type => 'expr',
     op => 'and',
     args => [
@@ -34,7 +34,7 @@ eq_or_diff
   "two keys in hash";
 
 eq_or_diff
-  $visitor->generate({ -or => { foo => 1, bar => 'some str' } }),
+  $visitor->recurse_where({ -or => { foo => 1, bar => 'some str' } }),
   { -type => 'expr',
     op => 'or',
     args => [
@@ -46,7 +46,7 @@ eq_or_diff
 
 
 eq_or_diff
-  $visitor->generate([ -and => { foo => 1, bar => 'some str' } ]),
+  $visitor->recurse_where([ -and => { foo => 1, bar => 'some str' } ]),
   { -type => 'expr',
     op => 'and',
     args => [
@@ -58,7 +58,7 @@ eq_or_diff
 
 
 eq_or_diff
-  $visitor->generate([ -and => { foo => 1, bar => 'some str' }, { foo => 1} ]),
+  $visitor->recurse_where([ -and => { foo => 1, bar => 'some str' }, { foo => 1} ]),
   { -type => 'expr',
     op => 'or',
     args => [
@@ -75,12 +75,12 @@ eq_or_diff
   "-and as first element of array + hash";
 
 eq_or_diff
-  $visitor->generate({ foo => { '!=' => 'bar' } }),
+  $visitor->recurse_where({ foo => { '!=' => 'bar' } }),
   field_op_value($foo_id, '!=', 'bar'),
   "foo => { '!=' => 'bar' }";
 
 eq_or_diff
-  $visitor->generate({ foo => [ 1, 'bar' ] }),
+  $visitor->recurse_where({ foo => [ 1, 'bar' ] }),
   { -type => 'expr',
     op => 'or',
     args => [
@@ -91,7 +91,7 @@ eq_or_diff
   "foo => [ 1, 'bar' ]";
 
 eq_or_diff
-  $visitor->generate({ foo => { -in => [ 1, 'bar' ] } }),
+  $visitor->recurse_where({ foo => { -in => [ 1, 'bar' ] } }),
   { -type => 'expr',
     op => 'in',
     args => [
@@ -103,7 +103,7 @@ eq_or_diff
   "foo => { -in => [ 1, 'bar' ] }";
 
 eq_or_diff
-  $visitor->generate({ foo => { -not_in => [ 1, 'bar' ] } }),
+  $visitor->recurse_where({ foo => { -not_in => [ 1, 'bar' ] } }),
   { -type => 'expr',
     op => 'not_in',
     args => [
@@ -115,7 +115,7 @@ eq_or_diff
   "foo => { -not_in => [ 1, 'bar' ] }";
 
 eq_or_diff
-  $visitor->generate({ foo => { -in => [ ] } }),
+  $visitor->recurse_where({ foo => { -in => [ ] } }),
   { -type => 'expr',
     op => 'in',
     args => [
@@ -135,7 +135,7 @@ my $worker_eq = sub {
   }
 };
 eq_or_diff
-  $visitor->generate( {
+  $visitor->recurse_where( {
     requestor => 'inna',
     worker => ['nwiger', 'rcwe', 'sfz'],
     status => { '!=', 'completed' }
