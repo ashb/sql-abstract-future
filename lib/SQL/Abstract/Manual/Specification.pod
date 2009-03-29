@@ -205,8 +205,8 @@ be careful to I<not> quote asterisks.
 
 =head3 Value
 
-A Value is a Perl scalar. Depending on the type, a Visitor may be able to make
-certain decisions.
+A Value is a Perl scalar. Depending on the subtype, a Visitor may be able to
+make certain decisions. The following are the minimally-valid subtypes:
 
 =over 4
 

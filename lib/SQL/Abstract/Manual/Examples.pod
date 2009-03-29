@@ -23,7 +23,7 @@ one. The SQL used is from the MySQL dialect.
               type  => 'SelectComponent',
               value => {
                   type    => 'Value',
-                  subtype => 'number',
+                  subtype => 'Number',
                   value   => 1,
               },
           },
@@ -68,7 +68,7 @@ one. The SQL used is from the MySQL dialect.
               type  => 'SelectComponent',
               value => {
                   type     => 'Value',
-                  subtype => 'number',
+                  subtype => 'Number',
                   value   => 1,
               },
           },
@@ -384,21 +384,24 @@ one. The SQL used is from the MySQL dialect.
           {
               type  => 'GroupbyComponent',
               value => {
-                  type => 'Number',
+                  type => 'Value',
+                  subtype => 'Number',
                   value => 1,
               },
           },
           {
               type  => 'GroupbyComponent',
               value => {
-                  type => 'Number',
+                  type => 'Value',
+                  subtype => 'Number',
                   value => 3,
               },
           },
           {
               type  => 'GroupbyComponent',
               value => {
-                  type => 'Number',
+                  type => 'Value',
+                  subtype => 'Number',
                   value => 2,
               },
           },
@@ -425,7 +428,8 @@ one. The SQL used is from the MySQL dialect.
                   element1 => 'col1',
               },
               value => {
-                  type => 'Number',
+                  type => 'Value',
+                  subtype => 'Number',
                   value => 1,
               },
           },
@@ -456,14 +460,45 @@ one. The SQL used is from the MySQL dialect.
       ],
       values => [
           {
-              type => 'Number,
+              type => 'Value',
+              subtype => 'Number',
               value => '1',
           },
           {
-              type => 'Number,
+              type => 'Value',
+              subtype => 'Number',
               value => '3',
           },
       ],
+  }
+
+=item * DELETE FROM foo WHERE col1 = 10
+
+  {
+      type => 'delete',
+      ast_version => 0.0001,
+      tables => {
+          type => 'TableIdentifier',
+          value => {
+              type => 'Identifier',
+              element1 => 'foo',
+          },
+      },
+      where => {
+          type => 'Operator',
+          op   => '=',
+          args => [
+              {
+                  type     => 'Identifier',
+                  element1 => 'col1',
+              },
+              {
+                  type     => 'Value',
+                  subtype  => 'Number',
+                  value => 10,
+              },
+          ],
+      },
   }
 
 =back
