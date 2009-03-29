@@ -508,18 +508,27 @@ The number corresponds to a column in the select clause.
 This corresponds to the clause that is used in some RDBMS engines to limit the
 number of rows returned by a query. In MySQL, this would be the LIMIT clause.
 
-A rows clause is composed as follows:
+The hash for a rows clause is composed as follows:
 
-  Number [, Number ]
+  {
+      type => 'Rows',
+      start => Number,
+      count => Number,
+  }
+
+The start attribute, if ommitted, will default to 0. The count attribute is
+optional.
 
 =head3 for
 
 This corresponds to the clause that is used in some RDBMS engines to indicate
 what locks are to be taken by this SELECT statement.
 
-A for clause is composed as follows:
+The hash for a for clause is composed as follows:
 
-  UPDATE | DELETE
+  {
+      value => '< UPDATE | DELETE >',
+  }
 
 =head3 connectby
 
