@@ -440,11 +440,15 @@ A where clause is composed of an Expression.
 
 This corresponds to the SET clause in an INSERT or UPDATE statement.
 
-A set clause is composed as follows:
+A set clause unit is an array of one or more SetComponent units.
 
-  SetComponent := Identifier = Expression
+The hash for SetComponent unit is composed as follows:
 
-  SetComponent [ , SetComponent ]*
+  {
+      type => 'SetComponent',
+      col  => Identifier,
+      value => Expression,
+  }
 
 =head3 columns
 
@@ -511,7 +515,6 @@ number of rows returned by a query. In MySQL, this would be the LIMIT clause.
 The hash for a rows clause is composed as follows:
 
   {
-      type => 'Rows',
       start => Number,
       count => Number,
   }

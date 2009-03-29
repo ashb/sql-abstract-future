@@ -405,6 +405,33 @@ one. The SQL used is from the MySQL dialect.
       ],
   }
 
+=item * UPDATE foo SET col1 = 1
+
+  {
+      type => 'update',
+      ast_version => 0.0001,
+      tables => {
+          type => 'TableIdentifier',
+          value => {
+              type => 'Identifier',
+              element1 => 'foo',
+          },
+      },
+      set => [
+          {
+              type => 'SetComponent',
+              col  => {
+                  type => 'Identifier,
+                  element1 => 'col1',
+              },
+              value => {
+                  type => 'Number',
+                  value => 1,
+              },
+          },
+      ],
+  }
+
 =back
 
 =head1 AUTHORS
