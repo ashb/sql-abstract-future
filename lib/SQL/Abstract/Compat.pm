@@ -15,7 +15,8 @@ class SQL::Abstract::Compat {
   has logic => (
     is => 'rw',
     isa => LogicEnum,
-    default => 'AND'
+    default => 'AND',
+    coerce => 1
   );
 
   has visitor => (
@@ -33,7 +34,6 @@ class SQL::Abstract::Compat {
   {
 
     my $ast = $self->_new_compat_ast->select($from,$fields,$where,$order);
-    pp($ast);
 
     return ($self->visitor->dispatch($ast), $self->visitor->binds);
   }
