@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 13;
+use Test::More tests => 14;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -178,3 +178,15 @@ eq_or_diff(
   ],
   
   "NOT IN clause");
+
+
+is $sqla->dispatch(
+  { -type => 'expr',
+    op => 'like',
+    args => [
+      {-type => name => args => [qw/me id/] }, 
+      { -type => 'value', value => 500 }
+    ]
+  }
+), "me.id LIKE ?", 
+   "LIKE expr clause";
