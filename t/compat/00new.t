@@ -43,13 +43,13 @@ my @handle_tests = (
 # acked by RIBASUSHI
               stmt => 'SELECT * FROM test WHERE ( a = ? AND b = ? )'
       },
-);
-my @foo = (
       #6
       {
               args => {cmp => "like"},
               stmt => 'SELECT * FROM test WHERE ( a LIKE ? AND b LIKE ? )'
       },
+);
+my @foo = (
       #7
       {
               args => {logic => "or", cmp => "like"},

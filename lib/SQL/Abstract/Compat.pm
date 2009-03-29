@@ -18,7 +18,8 @@ class SQL::Abstract::Compat {
     is => 'rw',
     isa => LogicEnum,
     default => 'AND',
-    coerce => 1
+    coerce => 1,
+    required => 1,
   );
 
   has visitor => (
@@ -29,6 +30,16 @@ class SQL::Abstract::Compat {
     builder => '_build_visitor',
   );
 
+  has cmp => (
+    is => 'rw',
+    isa => 'Str',
+    default => '=',
+    required => 1,
+  );
+
+  our %CMP_MAP = (
+    '=' => '==',
+  );
 
   method select(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
                 WhereType $where?,
@@ -145,9 +156,10 @@ class SQL::Abstract::Compat {
   }
 
   method field(Str $key, $value) returns (AST) {
+    my $op = $CMP_MAP{$self->cmp} || $self->cmp;
     my $ret = {
       -type => 'expr',
-      op => '==',
+      op => $op,
       args => [
         { -type => 'name', args => [$key] }
       ],
@@ -183,7 +195,7 @@ class SQL::Abstract::Compat {
         args => [ map {
           {
             -type => 'expr',
-            op => '==',
+            op => $op,
             args => [
               { -type => 'name', args => [$key] },
               $self->value($_)
