@@ -5,9 +5,11 @@ class SQL::Abstract::Compat {
   use Moose::Util::TypeConstraints;
   use MooseX::Types::Moose qw/Str ScalarRef ArrayRef HashRef/;
   use SQL::Abstract::Types::Compat ':all';
-  use SQL::Abstract::AST::Compat;
+  use SQL::Abstract::Types qw/AST/;
   use SQL::Abstract::AST::v1;
   use Data::Dump qw/pp/;
+  use Devel::PartialDump qw/dump/;
+  use Carp qw/croak/;
 
   class_type 'SQL::Abstract';
   clean;
@@ -32,8 +34,19 @@ class SQL::Abstract::Compat {
                 WhereType $where?,
                 WhereType $order?)
   {
+    my $ast = {
+      -type => 'select',
+      columns => [ 
+        map {
+          $self->mk_name($_)
+        } ( is_Str($fields) ? $fields : @$fields )
+      ],
+      tablespec => $self->tablespec($from)
+    };
 
-    my $ast = $self->_new_compat_ast->select($from,$fields,$where,$order);
+
+    $ast->{where} = $self->recurse_where($where)
+      if defined $where;
 
     return ($self->visitor->dispatch($ast), $self->visitor->binds);
   }
@@ -44,21 +57,155 @@ class SQL::Abstract::Compat {
     my $ret = "";
  
     if ($where) {
-      my $ast = $self->_new_compat_ast->generate($where);
+      my $ast = $self->recurse_where($where);
       $ret .= "WHERE " . $self->visitor->_expr($ast);
     }
 
     return $ret;
   }
 
-  #TODO: Handle logic and similar args later
-  method _new_compat_ast() {
-    return SQL::Abstract::AST::Compat->new;
-  }
-
   method _build_visitor() {
     return SQL::Abstract->create(1);
   } 
+
+  sub mk_name {
+    shift;
+    return { -type => 'name', args => [ @_ ] };
+  }
+
+  method tablespec(Str|ArrayRef|ScalarRef $from) {
+    return $self->mk_name($from)
+      if is_Str($from);
+  }
+
+  method recurse_where(WhereType $ast, LogicEnum $logic?) returns (AST) {
+    return $self->recurse_where_hash($logic || 'AND', $ast) if is_HashRef($ast);
+    return $self->recurse_where_array($logic || 'OR', $ast) if is_ArrayRef($ast);
+    croak "Unknown where clause type " . dump($ast);
+  }
+
+  method recurse_where_hash(LogicEnum $logic, HashRef $ast) returns (AST) {
+    my @args;
+    my $ret = {
+      -type => 'expr',
+      op => lc $logic,
+      args => \@args
+    };
+
+    while (my ($key,$value) = each %$ast) {
+      if ($key =~ /^-(or|and)$/) {
+        my $val = $self->recurse_where($value, uc $1);
+        if ($val->{op} eq $ret->{op}) {
+          push @args, @{$val->{args}};
+        }
+        else {
+          push @args, $val;
+        }
+        next;
+      }
+
+      push @args, $self->field($key, $value);
+    }
+
+    return $args[0] if @args == 1;
+
+    return $ret;
+  }
+
+  method recurse_where_array(LogicEnum $logic, ArrayRef $ast) returns (AST) {
+    my @args;
+    my $ret = {
+      -type => 'expr',
+      op => lc $logic,
+      args => \@args
+    };
+    my @nodes = @$ast;
+
+    while (my $key = shift @nodes) {
+      if ($key =~ /^-(or|and)$/) {
+        my $value = shift @nodes
+          or confess "missing value after $key at " . dump($ast);
+
+        my $val = $self->recurse_where($value, uc $1);
+        if ($val->{op} eq $ret->{op}) {
+          push @args, @{$val->{args}};
+        }
+        else {
+          push @args, $val;
+        }
+        next;
+      }
+
+      push @args, $self->recurse_where($key);
+    }
+
+    return $args[0] if @args == 1;
+
+    return $ret;
+  }
+
+  method field(Str $key, $value) returns (AST) {
+    my $ret = {
+      -type => 'expr',
+      op => '==',
+      args => [
+        { -type => 'name', args => [$key] }
+      ],
+    };
+
+    if (is_HashRef($value)) {
+      my ($op, @rest) = keys %$value;
+      confess "Don't know how to handle " . dump($value) . " (too many keys)"
+        if @rest;
+
+      # TODO: Validate the op?
+      if ($op =~ /^-([a-z_]+)$/i) {
+        $ret->{op} = lc $1;
+
+        if (is_ArrayRef($value->{$op})) {
+          push @{$ret->{args}}, $self->value($_)
+            for @{$value->{$op}};
+          return $ret;
+        }
+      }
+      else {
+        $ret->{op} = $op;
+      }
+
+      push @{$ret->{args}}, $self->value($value->{$op});
+
+    }
+    elsif (is_ArrayRef($value)) {
+      # Return an or clause, sort of.
+      return {
+        -type => 'expr',
+        op => 'or',
+        args => [ map {
+          {
+            -type => 'expr',
+            op => '==',
+            args => [
+              { -type => 'name', args => [$key] },
+              $self->value($_)
+            ],
+          }
+        } @$value ]
+      };
+    }
+    else {
+      push @{$ret->{args}}, $self->value($value);
+    }
+
+    return $ret;
+  }
+
+  method value($value) returns (AST) {
+    return { -type => 'value', value => $value }
+      if is_Str($value);
+
+    confess "Don't know how to handle terminal value " . dump($value);
+  }
+
 
 }
 

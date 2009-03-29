@@ -1,12 +1,12 @@
 use strict;
 use warnings;
 
-use SQL::Abstract::AST::Compat;
+use SQL::Abstract::Compat;
 
 use Test::More tests => 12;
 use Test::Differences;
 
-ok(my $visitor = SQL::Abstract::AST::Compat->new);
+ok(my $visitor = SQL::Abstract::Compat->new);
 
 
 my $foo_id = { -type => 'name', args => [qw/foo/] };
