@@ -130,12 +130,18 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     my $post;
     $post = pop @names if $names[-1] eq '*';
 
-    my $ret = 
-      $quote->[0] . 
-      join( $join, @names ) . 
-      $quote->[-1];
+    my $ret;
+    $ret = $quote->[0] . 
+           join( $join, @names ) . 
+           $quote->[-1]
+      if @names;
 
-    $ret .= $sep . $post if defined $post;
+    $ret = $ret 
+         ? $ret . $sep . $post
+         : $post
+      if defined $post;
+
+
     return $ret;
   }
 

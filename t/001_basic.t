@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 9;
+use Test::More tests => 10;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -12,6 +12,10 @@ my $sqla = SQL::Abstract->create(1);
 # TODO: once MXMS supports %args, use that here
 is $sqla->dispatch( { -type => 'name', args => [qw/me id/] }), "me.id",
   "Simple name generator";
+
+is $sqla->dispatch( { -type => 'name', args => ['*'] } ),
+   "*",
+   "* name generator";
 
 is $sqla->dispatch( { -type => 'name', args => [qw/me */]}),
    "me.*",
