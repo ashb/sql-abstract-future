@@ -535,9 +535,18 @@ The hash for a for clause is composed as follows:
 This corresponds to the clause that is used in some RDBMS engines to provide for
 an adjacency-list query.
 
-A connectby clause is composed as follows:
+The hash for a for clause is composed as follows:
 
-  Identifier, WhereExpression
+  {
+      start_with => ExpressionList,
+      connect_by => {
+          option => '< PRIOR | NOCYCLE >'
+          cond   => ExpressionList,
+      },
+      order_siblings => orderby-clause,
+  }
+
+Both the start_with and order_siblings clauses are optional.
 
 =head1 TODO
 
