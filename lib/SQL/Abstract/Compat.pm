@@ -4,12 +4,12 @@ class SQL::Abstract::Compat {
 
   use Moose::Util::TypeConstraints;
   use MooseX::Types::Moose qw/Str ScalarRef ArrayRef HashRef/;
-  use MooseX::Types -declare => [qw/LogicEnum WhereType/];
+  use SQL::Abstract::Types::Compat ':all';
+  use SQL::Abstract::AST::Compat;
+  use SQL::Abstract::AST::v1;
+  use Data::Dump qw/pp/;
 
-  enum LogicEnum, qw(OR AND);
-
-  subtype WhereType, as Str;
-
+  class_type 'SQL::Abstract';
   clean;
 
   has logic => (
@@ -18,25 +18,47 @@ class SQL::Abstract::Compat {
     default => 'AND'
   );
 
+  has visitor => (
+    is => 'rw',
+    isa => 'SQL::Abstract',
+    clearer => 'clear_visitor',
+    lazy => 1,
+    builder => '_build_visitor',
+  );
 
 
   method select(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
-                Str|ScalarRef|ArrayRef|HashRef $where?,
-                Str|ScalarRef|ArrayRef|HashRef $order?) {
-    return ("", );
+                WhereType $where?,
+                WhereType $order?)
+  {
+
+    my $ast = $self->_new_compat_ast->select($from,$fields,$where,$order);
+    pp($ast);
+
+    return ($self->visitor->dispatch($ast), $self->visitor->binds);
   }
 
-  method where(Str|ScalarRef|ArrayRef|HashRef $where,
-               Str|ScalarRef|ArrayRef|HashRef $order?) {
+  method where(WhereType $where,
+               WhereType $order?)
+  {
+    my $ret = "";
+ 
+    if ($where) {
+      my $ast = $self->_new_compat_ast->generate($where);
+      $ret .= "WHERE " . $self->visitor->_expr($ast);
+    }
 
-    my $ast = {
-      -type => 'expr',
-    };
+    return $ret;
   }
 
-  method recurse_where(LogicEsnum $where) {
-    
+  #TODO: Handle logic and similar args later
+  method _new_compat_ast() {
+    return SQL::Abstract::AST::Compat->new;
   }
+
+  method _build_visitor() {
+    return SQL::Abstract->create(1);
+  } 
 
 }
 

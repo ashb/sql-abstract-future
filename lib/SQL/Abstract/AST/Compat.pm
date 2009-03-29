@@ -16,8 +16,35 @@ class SQL::Abstract::AST::Compat {
     default => 'AND'
   );
 
-  method generate(WhereType $ast) returns (AST) {
-    return $self->recurse_where($ast);
+  sub mk_name {
+    shift;
+    return { -type => 'name', args => [ @_ ] };
+  }
+
+  method select(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
+                WhereType $where?,
+                WhereType $order?)
+  {
+    my $ast = {
+      -type => 'select',
+      columns => [ 
+        map {
+          $self->mk_name($_)
+        } ( is_Str($fields) ? $fields : @$fields )
+      ],
+      tablespec => $self->tablespec($from)
+    };
+
+
+    $ast->{where} = $self->recurse_where($where)
+      if defined $where;
+
+    return $ast;
+  }
+
+  method tablespec(Str|ArrayRef|ScalarRef $from) {
+    return $self->mk_name($from)
+      if is_Str($from);
   }
 
   method recurse_where(WhereType $ast, LogicEnum $logic?) returns (AST) {
