@@ -454,23 +454,13 @@ The hash for SetComponent unit is composed as follows:
 
 This corresponds to the optional list of columns in an INSERT statement.
 
-A columns clause is an IdentifierList and the unit is composed as follows:
-
-  columns => [
-      Identifier,
-      [ Identifier, ]*
-  ],
+A columns clause unit is an array of one or more Identifier units.
 
 =head3 values
 
 This corresponds to the VALUES clause in an INSERT statement.
 
-A values clause is an ExpressionList and the unit is composed as follows:
-
-  values => [
-      Expression,
-      [ Expression, ]*
-  ],
+A values clause unit is an array of one or more Expression units.
 
 If there is a columns clause, the number of entries in the values clause must be
 equal to the number of entries in the columns clause.
