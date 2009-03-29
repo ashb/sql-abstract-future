@@ -427,8 +427,8 @@ The hash for an Operator within a tables clause will be composed as follows:
   }
 
 A USING clause is syntactic sugar for an ON clause and, as such, is not provided
-for by the AST. A join of a comma is identical to a CROSS JOIN. The on clause is
-optional.
+for by the AST. A join of a comma is identical to a CROSS JOIN and, as such, is
+not provided for by the AST. The on clause is optional.
 
 =head3 where
 
@@ -461,7 +461,7 @@ A columns clause is an IdentifierList and the unit is composed as follows:
 
 This corresponds to the VALUES clause in an INSERT statement.
 
-A values clause is an ExpressionList and the unit is composed as follows.
+A values clause is an ExpressionList and the unit is composed as follows:
 
   values => [
       Expression,
@@ -475,23 +475,33 @@ equal to the number of entries in the columns clause.
 
 This corresponds to the ORDER BY clause in a SELECT statement.
 
-An orderby clause is composed as follows:
+A orderby clause unit is an array of one or more OrderbyComponent units.
 
-  OrderByComponent := XXX-TODO-XXX
-  OrderByDirection := ASC | DESC
+The hash for a OrderbyComponent unit is composed as follows:
 
-  OrderByComponent [ OrderByDirection ]
-  [ , OrderByComponent [ OrderByDirection ] ]*
+  {
+      type  => 'OrderbyComponent',
+      value => < Identifier | Number >
+      dir   => '< ASC | DESC >',
+  }
+
+The dir element, if omitted, will be defaulted to ASC by the AST. The number
+corresponds to a column in the select clause.
 
 =head3 groupby
 
 This corresponds to the GROUP BY clause in a SELECT statement.
 
-An groupby clause is composed as follows:
+A groupby clause unit is an array of one or more GroupbyComponent units.
 
-  GroupByComponent := XXX-TODO-XXX
+The hash for a GroupbyComponent unit is composed as follows:
 
-  GroupByComponent [ , GroupByComponent ]*
+  {
+      type  => 'GroupbyComponent',
+      value => < Identifier | Number >
+  }
+
+The number corresponds to a column in the select clause.
 
 =head3 rows
 
