@@ -2,7 +2,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 3;
+use Test::More tests => 4;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -36,4 +36,16 @@ is $sqla->dispatch(
   }
 ), "last_insert_id()",
    "last_insert_id";
+
+is $sqla->dispatch(
+  { -type => 'expr',
+    op => 'between',
+    args => [
+      {-type => name => args => [qw/me id/] }, 
+      { -type => 'value', value => 500 },
+      { -type => 'value', value => 599 },
+    ],
+  }
+), "me.id BETWEEN ? AND ?",
+   "between";
 

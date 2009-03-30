@@ -19,6 +19,8 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       %{super()},
       in => $self->can('_in'),
       not_in => $self->can('_in'),
+      between => $self->can('_between'),
+      not_between => $self->can('_between'),
       and => $self->can('_recurse_where'),
       or => $self->can('_recurse_where'),
       map { +"$_" => $self->can("_$_") } qw/
@@ -267,6 +269,20 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
            " IN (" .
            join(", ", map { $self->dispatch($_) } @values ) .
            ")";
+  }
+
+  method _between(AST $ast) {
+  
+    my ($field,@values) = @{$ast->{args}};
+
+    my $not = ($ast->{op} =~ /^not_/) ? " NOT" : "";
+    croak "between requires 3 arguments: " . dump($ast)
+      unless @values == 2;
+
+    return $self->_expr($field) .
+           $not . 
+           " BETWEEN " .
+           join(" AND ", map { $self->dispatch($_) } @values );
   }
 
   # 'constants' that are portable across DBs
