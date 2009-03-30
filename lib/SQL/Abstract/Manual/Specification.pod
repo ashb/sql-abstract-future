@@ -258,7 +258,9 @@ The hash will be structured as follows:
   {
       type => 'Operator',
       op   => String,
-      args => ExpressionList,
+      args => [
+          Expression,
+      ],
   }
 
 Operators have a cardinality, or expected number of arguments. Some operators,
@@ -308,22 +310,6 @@ An Expression can be any one of the following:
 
 An Expression is a meta-syntactic unit. An "Expression" unit will never appear
 within the AST. It acts as a junction.
-
-=head3 ExpressionList
-
-An ExpressionList is a list of Expressions, generally separated by commas
-(though other separators may be appropriate at times or for different SQL
-dialects). An null separator may also be used.
-
-The hash for an ExpressionList is as follows:
-
-  {
-      type      => 'ExpressionList',
-      separator => ',',
-      elements  =>  Array of Expressions,
-  }
-
-An ExpressionList is always rendered in SQL with parentheses around it.
 
 =head3 Nesting
 
@@ -531,10 +517,14 @@ an adjacency-list query.
 The hash for a for clause is composed as follows:
 
   {
-      start_with => ExpressionList,
+      start_with => [
+          Expression,
+      ],
       connect_by => {
           option => '< PRIOR | NOCYCLE >'
-          cond   => ExpressionList,
+          cond => [
+              Expression,
+          ],
       },
       order_siblings => orderby-clause,
   }
