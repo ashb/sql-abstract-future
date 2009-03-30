@@ -48,8 +48,6 @@ my @handle_tests = (
               args => {cmp => "like"},
               stmt => 'SELECT * FROM test WHERE ( a LIKE ? AND b LIKE ? )'
       },
-);
-my @foo = (
       #7
       {
               args => {logic => "or", cmp => "like"},
@@ -60,21 +58,25 @@ my @foo = (
       },
       #8
       {
+              todo => 'lower',
               args => {case => "lower"},
               stmt => 'select * from test where ( a = ? and b = ? )'
       },
       #9
       {
+              todo => 'lower',
               args => {case => "lower", cmp => "="},
               stmt => 'select * from test where ( a = ? and b = ? )'
       },
       #10
       {
+              todo => 'lower',
               args => {case => "lower", cmp => "like"},
               stmt => 'select * from test where ( a like ? and b like ? )'
       },
       #11
       {
+              todo => 'lower',
               args => {case => "lower", convert => "lower", cmp => "like"},
               stmt => 'select * from test where ( lower(a) like lower(?) and lower(b) like lower(?) )'
       },
@@ -85,6 +87,7 @@ my @foo = (
       },
       #13
       {
+              todo => 'lower',
               args => {convert => "lower"},
               stmt => 'SELECT * FROM test WHERE ( ( LOWER(ticket) = LOWER(?) ) OR ( LOWER(hostname) = LOWER(?) ) OR ( LOWER(taco) = LOWER(?) ) OR ( LOWER(salami) = LOWER(?) ) )',
               where => [ { ticket => 11 }, { hostname => 11 }, { taco => 'salad' }, { salami => 'punch' } ],
@@ -112,6 +115,7 @@ for (@handle_tests) {
   my $where = $_->{where} || { a => 4, b => 0};
   my($stmt, @bind) = $sql->select('test', '*', $where);
 
+  local $TODO = $_->{todo};
 
   # LDNOTE: this original test suite from NWIGER did no comparisons
   # on @bind values, just checking if @bind is nonempty.

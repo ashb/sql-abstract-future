@@ -41,6 +41,12 @@ class SQL::Abstract::Compat {
     '=' => '==',
   );
 
+  has convert => (
+    is => 'rw',
+    isa => 'Str',
+    predicate => 'has_field_convertor'
+  );
+
   method select(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
                 WhereType $where?,
                 WhereType $order?)
@@ -49,7 +55,7 @@ class SQL::Abstract::Compat {
       -type => 'select',
       columns => [ 
         map {
-          $self->mk_name($_)
+          $self->mk_name(0, $_)
         } ( is_Str($fields) ? $fields : @$fields )
       ],
       tablespec => $self->tablespec($from)
@@ -80,12 +86,17 @@ class SQL::Abstract::Compat {
   } 
 
   sub mk_name {
-    shift;
-    return { -type => 'name', args => [ @_ ] };
+    my ($self, $use_convert) = (shift,shift);
+    my $ast = { -type => 'name', args => [ @_ ] };
+
+    return $ast
+      unless $use_convert && $self->has_field_convertor;
+
+    return $self->apply_convert($ast);
   }
 
   method tablespec(Str|ArrayRef|ScalarRef $from) {
-    return $self->mk_name($from)
+    return $self->mk_name(0, $from)
       if is_Str($from);
   }
 
@@ -161,7 +172,7 @@ class SQL::Abstract::Compat {
       -type => 'expr',
       op => $op,
       args => [
-        { -type => 'name', args => [$key] }
+        $self->mk_name(1, $key)
       ],
     };
 
@@ -212,10 +223,20 @@ class SQL::Abstract::Compat {
   }
 
   method value($value) returns (AST) {
-    return { -type => 'value', value => $value }
+    return $self->apply_convert( { -type => 'value', value => $value })
       if is_Str($value);
 
     confess "Don't know how to handle terminal value " . dump($value);
+  }
+
+  method apply_convert(AST $ast) {
+    return $ast unless $self->has_field_convertor;
+
+    return {
+      -type => 'expr',
+      op => $self->convert,
+      args => [ $ast ]
+    };
   }
 
 
