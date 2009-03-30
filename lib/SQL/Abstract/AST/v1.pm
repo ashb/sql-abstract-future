@@ -147,6 +147,8 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
 
 
   method _list(AST $ast) {
+    return "" unless $ast->{args};
+
     my @items = is_ArrayRef($ast->{args})
               ? @{$ast->{args}}
               : $ast->{args};
@@ -227,7 +229,12 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     croak "'$op' is not a valid AST type in an expression with " . dump($ast)
       if $ast->{-type} ne 'expr';
 
-    croak "'$op' is not a valid operator in an expression with " . dump($ast);
+    # This is an attempt to do some form of validation on function names. This
+    # might end up being a bad thing.
+    croak "'$op' is not a valid operator in an expression with " . dump($ast)
+      if $op =~ /\W/;
+
+    return $self->_generic_function_op($ast);
    
   }
 
@@ -239,6 +246,12 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
                $self->binop_mapping($op) || croak("Unknown binary operator $op"),
                $self->_expr($rhs)
     );
+  }
+
+  method _generic_function_op(AST $ast) {
+    my $op = $ast->{op};
+
+    return "$op(" . $self->_list($ast) . ")";
   }
 
   method _in(AST $ast) {
@@ -254,9 +267,6 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
            " IN (" .
            join(", ", map { $self->dispatch($_) } @values ) .
            ")";
-  }
-
-  method _generic_func(ArrayRef $ast) {
   }
 
   # 'constants' that are portable across DBs
