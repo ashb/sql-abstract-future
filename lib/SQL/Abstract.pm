@@ -31,8 +31,8 @@ class SQL::Abstract {
     '==' => '=',
     '!=' => '!=',
     # LIKE is always "field LIKE <value>"
-    '-like' => 'LIKE',
-    '-not_like' => 'NOT LIKE',
+    'like' => 'LIKE',
+    'not_like' => 'NOT LIKE',
   );
 
   has expr_dispatch_table => (

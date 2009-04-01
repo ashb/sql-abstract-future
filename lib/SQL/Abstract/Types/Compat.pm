@@ -10,5 +10,7 @@ class SQL::Abstract::Types::Compat {
 
   enum LogicEnum, qw(OR AND);
 
+  coerce LogicEnum, from Str, via { uc $_ };
+
   subtype WhereType, as Str|ArrayRef|HashRef|ScalarRef;
 }

@@ -19,6 +19,8 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       %{super()},
       in => $self->can('_in'),
       not_in => $self->can('_in'),
+      between => $self->can('_between'),
+      not_between => $self->can('_between'),
       and => $self->can('_recurse_where'),
       or => $self->can('_recurse_where'),
       map { +"$_" => $self->can("_$_") } qw/
@@ -130,17 +132,25 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     my $post;
     $post = pop @names if $names[-1] eq '*';
 
-    my $ret = 
-      $quote->[0] . 
-      join( $join, @names ) . 
-      $quote->[-1];
+    my $ret;
+    $ret = $quote->[0] . 
+           join( $join, @names ) . 
+           $quote->[-1]
+      if @names;
 
-    $ret .= $sep . $post if defined $post;
+    $ret = $ret 
+         ? $ret . $sep . $post
+         : $post
+      if defined $post;
+
+
     return $ret;
   }
 
 
   method _list(AST $ast) {
+    return "" unless $ast->{args};
+
     my @items = is_ArrayRef($ast->{args})
               ? @{$ast->{args}}
               : $ast->{args};
@@ -221,7 +231,12 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     croak "'$op' is not a valid AST type in an expression with " . dump($ast)
       if $ast->{-type} ne 'expr';
 
-    croak "'$op' is not a valid operator in an expression with " . dump($ast);
+    # This is an attempt to do some form of validation on function names. This
+    # might end up being a bad thing.
+    croak "'$op' is not a valid operator in an expression with " . dump($ast)
+      if $op =~ /\W/;
+
+    return $self->_generic_function_op($ast);
    
   }
 
@@ -233,6 +248,12 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
                $self->binop_mapping($op) || croak("Unknown binary operator $op"),
                $self->_expr($rhs)
     );
+  }
+
+  method _generic_function_op(AST $ast) {
+    my $op = $ast->{op};
+
+    return "$op(" . $self->_list($ast) . ")";
   }
 
   method _in(AST $ast) {
@@ -250,7 +271,18 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
            ")";
   }
 
-  method _generic_func(ArrayRef $ast) {
+  method _between(AST $ast) {
+  
+    my ($field,@values) = @{$ast->{args}};
+
+    my $not = ($ast->{op} =~ /^not_/) ? " NOT" : "";
+    croak "between requires 3 arguments: " . dump($ast)
+      unless @values == 2;
+
+    return $self->_expr($field) .
+           $not . 
+           " BETWEEN " .
+           join(" AND ", map { $self->dispatch($_) } @values );
   }
 
   # 'constants' that are portable across DBs
