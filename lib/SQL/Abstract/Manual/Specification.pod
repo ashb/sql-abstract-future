@@ -324,31 +324,62 @@ given RDBMS engine's SQL dialect and some clauses may be required in one and
 optional in another. Detecting and enforcing those engine-specific restrictions
 is the responsibility of the Visitor object.
 
-The clauses are defined with a yacc-like syntax. The various parts are:
+The following clauses are expected to be handled by Visitors for each statement:
 
 =over 4
 
-=item * :=
+=item * SELECT
 
-This means "defined" and is used to create a new term to be used below.
+=over 4
 
-=item * []
+=item * select
 
-This means optional and indicates that the items within it are optional.
+=item * tables
 
-=item * []*
+=item * where
 
-This means optional and repeating as many times as desired.
+=item * orderby
 
-=item * |
+=item * groupby
 
-This means alternation. It is a binary operator and indicates that either the
-left or right hand sides may be used, but not both.
+=back
 
-=item * C<< <> >>
+=item * insert
 
-This is a grouping construct. It means that all elements within this construct
-are treated together for the purposes of optional, repeating, alternation, etc.
+=over 4
+
+=item * tables
+
+=item * columns
+
+=item * values
+
+=back
+
+There are RDBMS-specific variations of the INSERT statement, such the one in
+MySQL's 
+
+=item * update
+
+=over 4
+
+=item * tables
+
+=item * set
+
+=item * where
+
+=back
+
+=item * delete
+
+=over 4
+
+=item * tables
+
+=item * where
+
+=back
 
 =back
 
@@ -431,8 +462,8 @@ A set clause unit is an array of one or more SetComponent units.
 The hash for SetComponent unit is composed as follows:
 
   {
-      type => 'SetComponent',
-      col  => Identifier,
+      type  => 'SetComponent',
+      col   => Identifier,
       value => Expression,
   }
 
@@ -461,12 +492,13 @@ The hash for a OrderbyComponent unit is composed as follows:
 
   {
       type  => 'OrderbyComponent',
-      value => < Identifier | Number >
+      value => Expression,
       dir   => '< ASC | DESC >',
   }
 
-The dir element, if omitted, will be defaulted to ASC by the AST. The number
-corresponds to a column in the select clause.
+The value should either be an Identifier or a Number. The dir element, if
+omitted, will be defaulted to ASC by the AST. The number corresponds to a column
+in the select clause.
 
 =head3 groupby
 
@@ -478,15 +510,23 @@ The hash for a GroupbyComponent unit is composed as follows:
 
   {
       type  => 'GroupbyComponent',
-      value => < Identifier | Number >
+      value => Expression,
   }
 
-The number corresponds to a column in the select clause.
+The value should either be an Identifier or a Number. The number corresponds to
+a column in the select clause.
+
+=head2 Possible RDBMS-specific clauses
+
+The following clauses are provided as examples for RDBMS-specific elements. They
+are B<not> expected to be supported by all Visitors. Visitors may choose whether
+or not to throw on an unexpected clause, though it is strongly recommended.
 
 =head3 rows
 
 This corresponds to the clause that is used in some RDBMS engines to limit the
-number of rows returned by a query. In MySQL, this would be the LIMIT clause.
+number of rows returned by a SELECT statement. In MySQL, this would be the LIMIT
+clause.
 
 The hash for a rows clause is composed as follows:
 
