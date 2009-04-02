@@ -51,6 +51,14 @@ class SQL::Abstract::Compat {
                 WhereType $where?,
                 WhereType $order?)
   {
+    my $ast = $self->select_ast($from,$fields,$where,$order);
+
+    return ($self->visitor->dispatch($ast), $self->visitor->binds);
+  }
+  method select_ast(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
+                WhereType $where?,
+                WhereType $order?)
+  {
     my $ast = {
       -type => 'select',
       columns => [ 
@@ -64,8 +72,7 @@ class SQL::Abstract::Compat {
 
     $ast->{where} = $self->recurse_where($where)
       if defined $where;
-
-    return ($self->visitor->dispatch($ast), $self->visitor->binds);
+    return $ast;
   }
 
   method where(WhereType $where,
@@ -180,22 +187,38 @@ class SQL::Abstract::Compat {
       my ($op, @rest) = keys %$value;
       confess "Don't know how to handle " . dump($value) . " (too many keys)"
         if @rest;
+      $value = $value->{$op};
 
       # TODO: Validate the op?
-      if ($op =~ /^-([a-z_]+)$/i) {
-        $ret->{op} = lc $1;
+      if ($op =~ /^-?(?:(not)[_ ])?([a-z_]+)$/i) {
+        $ret->{op} = lc $2;
+        $ret->{op} = "not_" . $ret->{op} if $1;
 
-        if (is_ArrayRef($value->{$op})) {
+        if (is_ArrayRef($value)) {
           push @{$ret->{args}}, $self->value($_)
-            for @{$value->{$op}};
+            for @{$value};
           return $ret;
         }
       }
       else {
         $ret->{op} = $op;
       }
+      
+      if (is_ArrayRef($value)) {
+        local $self->{cmp} = $op;
 
-      push @{$ret->{args}}, $self->value($value->{$op});
+        my $ast = {
+          -type => 'expr',
+          # Handle e => { '!=', [qw(f g)] }.
+          # SQLA treats this as a 'DWIM'
+          op => $op eq '!=' ? 'or' : 'and',
+          args => [ map {
+            $self->field($key, $_)
+          } @{$value} ]
+        };
+        return $ast;
+      }
+      push @{$ret->{args}}, $self->value($value);
 
     }
     elsif (is_ArrayRef($value)) {
@@ -204,14 +227,7 @@ class SQL::Abstract::Compat {
         -type => 'expr',
         op => 'or',
         args => [ map {
-          {
-            -type => 'expr',
-            op => $op,
-            args => [
-              { -type => 'name', args => [$key] },
-              $self->value($_)
-            ],
-          }
+            $self->field($key, $_)
         } @$value ]
       };
     }
