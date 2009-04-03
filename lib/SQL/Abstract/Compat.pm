@@ -121,7 +121,9 @@ class SQL::Abstract::Compat {
       args => \@args
     };
 
-    while (my ($key,$value) = each %$ast) {
+    for my $key ( sort keys %$ast ) {
+      my $value = $ast->{$key};
+
       if ($key =~ /^-(or|and)$/) {
         my $val = $self->recurse_where($value, uc $1);
         if ($val->{op} eq $ret->{op}) {

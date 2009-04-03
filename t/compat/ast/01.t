@@ -1,6 +1,10 @@
 use strict;
 use warnings;
 
+use FindBin;
+use lib "$FindBin::Bin/../../lib";
+use SQLADumperSort;
+
 use SQL::Abstract::Compat;
 
 use Test::More tests => 12;
@@ -134,6 +138,7 @@ my $worker_eq = sub {
     ],
   }
 };
+
 eq_or_diff
   $visitor->recurse_where( {
     requestor => 'inna',
@@ -143,6 +148,7 @@ eq_or_diff
   { -type => 'expr',
     op => 'and',
     args => [
+      field_op_value(qw/requestor == inna/),
       field_op_value(qw/status != completed/), 
       { -type => 'expr',
         op => 'or',
@@ -152,12 +158,65 @@ eq_or_diff
           field_op_value(qw/worker == sfz/), 
         ]
       },
-      field_op_value(qw/requestor == inna/),
     ]
   },
-  "complex expr #1";
+  "complex expr 1";
 
 
+=for comment
+$visitor->convert('UPPER');
+
+eq_or_diff
+  $visitor->select_ast(
+    'test', '*', [ { ticket => [11, 12, 13] } ]
+  ),
+  { -type => 'select',
+    columns => [ { -type => 'name', args => ['*'] } ],
+    tablespec => { -type => 'name', args => ['test'] },
+    where =>
+      { -type => 'expr', op => 'or', args => [
+        field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(11))),
+        field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(12))),
+        field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(13))),
+      ] }
+  },
+  "Complex AST with convert('UPPER')";
+
+eq_or_diff
+  $visitor->select_ast(
+    'test', '*', [ { ticket => [11, 12, 13], 
+                     hostname => { in => ['ntf', 'avd', 'bvd', '123'] } },
+                  #{ tack => { between => [qw/tick tock/] } },
+                  #{ a => [qw/b c d/], 
+                  #  e => { '!=', [qw(f g)] }, 
+                  #  q => { 'not in', [14..20] } 
+                  #}
+                 ]
+  ),
+  { -type => 'select',
+    columns => [ { -type => 'name', args => ['*'] } ],
+    tablespec => { -type => 'name', args => ['test'] },
+    where =>
+      { -type => 'expr', op => 'or', args => [
+        { -type => 'expr', op => 'and', args => [
+          field_op_value( upper(mk_name('hostname')), 
+                          in => [ 
+                            upper(mk_value('nft')),
+                            upper(mk_value('avd')),
+                            upper(mk_value('bvd')),
+                            upper(mk_value('123')),
+                          ]
+                        ),
+          { -type => 'expr', op => 'or', args => [
+            field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(11))),
+            field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(12))),
+            field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(13))),
+          ] }
+        ] }
+    ] }
+  },
+  "Complex AST with convert('UPPER')";
+=cut
 
 sub field_op_value {
   my ($field, $op, $value) = @_;
@@ -168,16 +227,44 @@ sub field_op_value {
          ? { -type => 'name', args => $field } 
          : { -type => 'name', args => [$field] };
 
-  $value = ref $value eq 'HASH'
-         ? $value
-         : { -type => 'value', value => $value };
+  my @value = ref $value eq 'HASH'
+            ? $value
+            : ref $value eq 'ARRAY'
+            ? @$value
+            : { -type => 'value', value => $value };
 
   return {
     -type => 'expr',
     op => $op,
     args => [
       $field,
-      $value
+      @value
     ]
   };
+}
+
+sub upper { expr(UPPER => @_) }
+
+sub expr {
+  my ($op, @args) = @_;
+
+  return {
+    -type => 'expr',
+    op => $op,
+    args => [@args]
+  };
+}
+
+sub mk_name {
+  my ($field) = @_;
+  $field = ref $field eq 'HASH'
+         ? $field
+         : ref $field eq 'ARRAY' 
+         ? { -type => 'name', args => $field } 
+         : { -type => 'name', args => [$field] };
+  return $field;
+}
+
+sub mk_value {
+  return { -type => 'value', value => $_[0] }
 }
