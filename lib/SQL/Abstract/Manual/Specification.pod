@@ -292,6 +292,19 @@ impossible.
 
 Subqueries, when expressed in SQL, must be bounded by parentheses.
 
+=head3 Alias
+
+An Alias is any place where the construct "X as Y" appears. While the "as Y" is
+often optional, the AST will make it required.
+
+The hash will be structured as follows:
+
+  {
+      type  => 'Alias',
+      value => Expression,
+      as    => String,
+  }
+
 =head3 Expression
 
 An Expression can be any one of the following:
@@ -305,6 +318,8 @@ An Expression can be any one of the following:
 =item * Operator
 
 =item * Subquery
+
+=item * Alias
 
 =back
 
@@ -389,18 +404,7 @@ The expected clauses are (name and structure):
 
 This corresponds to the SELECT clause of a SELECT statement.
 
-A select clause unit is an array of one or more SelectComponent units.
-
-The hash for a SelectComponent unit is composed as follows:
-
-  {
-      type  => 'SelectComponent',
-      value => Expression,
-      as    => String,
-  }
-
-The 'as' component is optional. Visitors may choose to make it required in
-certain situations.
+A select clause unit is an array of one or more Expressions.
 
 =head3 tables
 
@@ -413,26 +417,7 @@ The tables clause has several RDBMS-specific variations. The AST will support
 all of them and it is up to the Visitor object constructing the actual SQL to
 validate and/or use what is provided as appropriate.
 
-A TableJoin is a junction of the following elements:
-
-=over 4
-
-=item * TableIdentifier
-
-=item * Operator
-
-=back
-
-The hash for a TableIdentifier will be composed as follows:
-
-  # TableIdentifier
-  {
-      type  => 'TableIdentifier',
-      value => Expression,
-      as    => String,
-  }
-
-The value should be either an Identifier or a SubQuery. 
+A tables clause is an Expression.
 
 The hash for an Operator within a tables clause will be composed as follows:
 
@@ -576,6 +561,12 @@ Both the start_with and order_siblings clauses are optional.
 =over 4
 
 =item * sproc unit
+
+=item * UNION, UNION ALL, and MINUS
+
+=item * INSERT INTO <table> SELECT ...
+
+=item * INSERT INTO <table> SET ...
 
 =back
 
