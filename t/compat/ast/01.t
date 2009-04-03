@@ -7,7 +7,7 @@ use SQLADumperSort;
 
 use SQL::Abstract::Compat;
 
-use Test::More tests => 13;
+use Test::More tests => 17;
 use Test::Differences;
 
 ok(my $visitor = SQL::Abstract::Compat->new);
@@ -165,6 +165,16 @@ eq_or_diff
 
 $visitor->convert('UPPER');
 
+my $ticket_or_eq = { 
+  -type => 'expr', 
+  op => 'or',
+  args => [
+    field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(11))),
+    field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(12))),
+    field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(13))),
+  ] 
+};
+
 eq_or_diff
   $visitor->select_ast(
     'test', '*', [ { ticket => [11, 12, 13] } ]
@@ -172,51 +182,147 @@ eq_or_diff
   { -type => 'select',
     columns => [ { -type => 'name', args => ['*'] } ],
     tablespec => { -type => 'name', args => ['test'] },
-    where =>
-      { -type => 'expr', op => 'or', args => [
-        field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(11))),
-        field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(12))),
-        field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(13))),
-      ] }
+    where => $ticket_or_eq
   },
   "Complex AST with convert('UPPER')";
 
-=for comment
+my $hostname_and_ticket = {
+  -type => 'expr',
+  op => 'and',
+  args => [
+    field_op_value( upper(mk_name('hostname')),
+                    in => [ map {
+                      upper(mk_value($_))
+                    } qw/ntf avd bvd 123/ ]
+                  ),
+    $ticket_or_eq,
+  ]
+};
+
 eq_or_diff
   $visitor->select_ast(
-    'test', '*', [ { ticket => [11, 12, 13], 
-                     hostname => { in => ['ntf', 'avd', 'bvd', '123'] } },
-                  #{ tack => { between => [qw/tick tock/] } },
-                  #{ a => [qw/b c d/], 
-                  #  e => { '!=', [qw(f g)] }, 
-                  #  q => { 'not in', [14..20] } 
-                  #}
+    'test', '*', [ { ticket => [11, 12, 13],
+                     hostname => { in => ['ntf', 'avd', 'bvd', '123'] }
+                   }
                  ]
   ),
   { -type => 'select',
     columns => [ { -type => 'name', args => ['*'] } ],
     tablespec => { -type => 'name', args => ['test'] },
-    where =>
-      { -type => 'expr', op => 'or', args => [
-        { -type => 'expr', op => 'and', args => [
-          field_op_value( upper(mk_name('hostname')), 
-                          in => [ 
-                            upper(mk_value('nft')),
-                            upper(mk_value('avd')),
-                            upper(mk_value('bvd')),
-                            upper(mk_value('123')),
-                          ]
-                        ),
-          { -type => 'expr', op => 'or', args => [
-            field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(11))),
-            field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(12))),
-            field_op_value( upper(mk_name('ticket')), '==', upper(mk_value(13))),
-          ] }
-        ] }
-    ] }
+    where => $hostname_and_ticket
   },
-  "Complex AST with convert('UPPER')";
-=cut
+  "Complex AST mixing arrays+hashes with convert('UPPER')";
+
+my $tack_between = {
+  -type => 'expr',
+  op => 'between',
+  args => [
+    upper(mk_name('tack')),
+    upper(mk_value('tick')),
+    upper(mk_value('tock')),
+  ]
+};
+
+eq_or_diff
+  $visitor->select_ast(
+    'test', '*', [ { ticket => [11, 12, 13],
+                     hostname => { in => ['ntf', 'avd', 'bvd', '123'] }
+                   },
+                   { tack => { between => [qw/tick tock/] } }
+                 ]
+  ),
+  { -type => 'select',
+    columns => [ { -type => 'name', args => ['*'] } ],
+    tablespec => { -type => 'name', args => ['test'] },
+    where => {
+      -type => 'expr',
+      op => 'or',
+      args => [
+        $hostname_and_ticket,
+        $tack_between,
+      ]
+    }
+  },
+  "Complex AST mixing [ {a => [1,2],b => 3}, { c => 4 }]";
+
+my $a_or_eq = {
+ -type => 'expr',
+ op => 'or',
+ args => [ map {
+  { -type => 'expr', op => '==', args => [ upper(mk_name('a')), upper(mk_value($_)) ] }
+ } qw/b c d/ ]
+};
+
+my $e_ne = {
+ -type => 'expr',
+ op => 'or',
+ args => [ map {
+  { -type => 'expr', op => '!=', args => [ upper(mk_name('e')), upper(mk_value($_)) ] }
+ } qw/f g/ ]
+};
+
+eq_or_diff
+  $visitor->select_ast(
+    'test', '*', [ { ticket => [11, 12, 13],
+                     hostname => { in => ['ntf', 'avd', 'bvd', '123'] }
+                   },
+                   { tack => { between => [qw/tick tock/] } },
+                   { a => [qw/b c d/], 
+                     e => { '!=', [qw(f g)] }, 
+                   }
+                 ]
+  ),
+  { -type => 'select',
+    columns => [ { -type => 'name', args => ['*'] } ],
+    tablespec => { -type => 'name', args => ['test'] },
+    where => {
+      -type => 'expr',
+      op => 'or',
+      args => [
+        $hostname_and_ticket,
+        $tack_between,
+        { -type => 'expr', op => 'and', args => [ $a_or_eq, $e_ne ] }
+      ]
+    }
+  },
+  "Complex AST mixing [ {a => [1,2],b => 3}, { c => 4 }, { d => [5,6,7], e => { '!=' => [8,9] } } ]";
+
+
+eq_or_diff
+  $visitor->select_ast(
+    'test', '*', [ { ticket => [11, 12, 13], 
+                     hostname => { in => ['ntf', 'avd', 'bvd', '123'] } },
+                  { tack => { between => [qw/tick tock/] } },
+                  { a => [qw/b c d/], 
+                    e => { '!=', [qw(f g)] }, 
+                    q => { 'not in', [14..20] } 
+                  }
+                 ]
+  ),
+  { -type => 'select',
+    columns => [ { -type => 'name', args => ['*'] } ],
+    tablespec => { -type => 'name', args => ['test'] },
+    where => {
+      -type => 'expr',
+      op => 'or',
+      args => [
+        $hostname_and_ticket,
+        $tack_between,
+        { -type => 'expr', op => 'and', args => [ 
+          $a_or_eq, 
+          $e_ne,
+          { -type => 'expr',
+            op => 'not_in',
+            args => [
+              upper(mk_name('q')),
+              map { upper(mk_value($_)) } 14..20
+            ]
+          }
+        ] }
+      ]
+    }
+  },
+  "Complex AST [ {a => [1,2],b => 3}, { c => 4 }, { d => [5,6,7], e => { '!=' => [8,9] }, q => {'not in' => [10,11] } } ]";
 
 sub field_op_value {
   my ($field, $op, $value) = @_;

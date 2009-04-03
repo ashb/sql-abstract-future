@@ -104,7 +104,6 @@ class SQL::Abstract::Compat {
 
   method tablespec(Str|ArrayRef|ScalarRef $from) {
     return $self->mk_name(0, $from)
-      if is_Str($from);
   }
 
   method recurse_where(WhereType $ast, LogicEnum $logic?) returns (AST) {
@@ -218,10 +217,7 @@ class SQL::Abstract::Compat {
 
       my $ast = {
         -type => 'expr',
-
-        # Handle e => { '!=', [qw(f g)] }.
-        # SQLA treats this as a 'DWIM' since e != f AND e != g doesn't make sense
-        op => $op eq '!=' ? 'or' : 'and',
+        op => 'or',
         args => [ map {
           $self->field($key, $_)
         } @{$value} ]
