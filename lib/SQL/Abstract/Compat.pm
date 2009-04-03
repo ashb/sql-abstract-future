@@ -113,6 +113,7 @@ class SQL::Abstract::Compat {
     croak "Unknown where clause type " . dump($ast);
   }
 
+  # Deals with where({ .... }) case
   method recurse_where_hash(LogicEnum $logic, HashRef $ast) returns (AST) {
     my @args;
     my $ret = {
@@ -143,6 +144,7 @@ class SQL::Abstract::Compat {
     return $ret;
   }
 
+  # Deals with where([ .... ]) case
   method recurse_where_array(LogicEnum $logic, ArrayRef $ast) returns (AST) {
     my @args;
     my $ret = {
@@ -175,6 +177,7 @@ class SQL::Abstract::Compat {
     return $ret;
   }
 
+  # { field => { .... } } case
   method field_hash(Str $key, HashRef $value) returns (AST) {
     my ($op, @rest) = keys %$value;
 
