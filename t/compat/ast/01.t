@@ -7,7 +7,7 @@ use SQLADumperSort;
 
 use SQL::Abstract::Compat;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 use Test::Differences;
 
 ok(my $visitor = SQL::Abstract::Compat->new);
@@ -163,7 +163,6 @@ eq_or_diff
   "complex expr 1";
 
 
-=for comment
 $visitor->convert('UPPER');
 
 eq_or_diff
@@ -182,6 +181,7 @@ eq_or_diff
   },
   "Complex AST with convert('UPPER')";
 
+=for comment
 eq_or_diff
   $visitor->select_ast(
     'test', '*', [ { ticket => [11, 12, 13], 
