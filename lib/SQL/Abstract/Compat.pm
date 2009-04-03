@@ -175,8 +175,14 @@ class SQL::Abstract::Compat {
     return $ret;
   }
 
-  method field(Str $key, $value) returns (AST) {
-    my $op = $CMP_MAP{$self->cmp} || $self->cmp;
+  method field_hash(Str $key, HashRef $value) returns (AST) {
+    my ($op, @rest) = keys %$value;
+
+    confess "Don't know how to handle " . dump($value) . " (too many keys)"
+      if @rest;
+
+    $value = $value->{$op};
+
     my $ret = {
       -type => 'expr',
       op => $op,
@@ -184,58 +190,76 @@ class SQL::Abstract::Compat {
         $self->mk_name(1, $key)
       ],
     };
+    $ret->{op} = $op;
+
+    # TODO: Validate the op?
+    # 'word_like' operator
+    if ($op =~ /^-?(?:(not)[_ ])?([a-z_]+)$/i) {
+      $ret->{op} = lc $2;
+      $ret->{op} = "not_" . $ret->{op} if $1;
+
+
+      if (is_ArrayRef($value)) {
+        push @{$ret->{args}}, $self->value($_) for @{$value};
+        return $ret;
+      }
+    }
+  
+    # Cases like:
+    #   field => { '!=' =>  [ 'a','b','c'] }
+    #   field => { '<' =>  [ 'a','b','c'] }
+    #
+    # *not* when op is a work or function operator - basic cmp operator only  
+    if (is_ArrayRef($value)) {
+      local $self->{cmp} = $op;
+
+      my $ast = {
+        -type => 'expr',
+
+        # Handle e => { '!=', [qw(f g)] }.
+        # SQLA treats this as a 'DWIM' since e != f AND e != g doesn't make sense
+        op => $op eq '!=' ? 'or' : 'and',
+        args => [ map {
+          $self->field($key, $_)
+        } @{$value} ]
+      };
+      return $ast;
+    }
+
+    
+    push @{$ret->{args}}, $self->value($value);
+    return $ret;
+  }
+
+  # Handle [ { ... }, { ... } ]
+  method field_array(Str $key, ArrayRef $value) {
+    # Return an or clause, sort of.
+    return {
+      -type => 'expr',
+      op => 'or',
+      args => [ map {
+          $self->field($key, $_)
+      } @$value ]
+    };
+  }
+
+  method field(Str $key, $value) returns (AST) {
 
     if (is_HashRef($value)) {
-      my ($op, @rest) = keys %$value;
-      confess "Don't know how to handle " . dump($value) . " (too many keys)"
-        if @rest;
-      $value = $value->{$op};
-
-      # TODO: Validate the op?
-      if ($op =~ /^-?(?:(not)[_ ])?([a-z_]+)$/i) {
-        $ret->{op} = lc $2;
-        $ret->{op} = "not_" . $ret->{op} if $1;
-
-        if (is_ArrayRef($value)) {
-          push @{$ret->{args}}, $self->value($_)
-            for @{$value};
-          return $ret;
-        }
-      }
-      else {
-        $ret->{op} = $op;
-      }
-      
-      if (is_ArrayRef($value)) {
-        local $self->{cmp} = $op;
-
-        my $ast = {
-          -type => 'expr',
-          # Handle e => { '!=', [qw(f g)] }.
-          # SQLA treats this as a 'DWIM'
-          op => $op eq '!=' ? 'or' : 'and',
-          args => [ map {
-            $self->field($key, $_)
-          } @{$value} ]
-        };
-        return $ast;
-      }
-      push @{$ret->{args}}, $self->value($value);
-
+      return $self->field_hash($key, $value);
     }
     elsif (is_ArrayRef($value)) {
-      # Return an or clause, sort of.
-      return {
-        -type => 'expr',
-        op => 'or',
-        args => [ map {
-            $self->field($key, $_)
-        } @$value ]
-      };
+      return $self->field_array($key, $value);
     }
-    else {
-      push @{$ret->{args}}, $self->value($value);
-    }
+
+    my $ret = {
+      -type => 'expr',
+      op => $CMP_MAP{$self->cmp} || $self->cmp,
+      args => [
+        $self->mk_name(1, $key),
+        $self->value($value)
+      ],
+    };
 
     return $ret;
   }
