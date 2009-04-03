@@ -302,7 +302,7 @@ The hash will be structured as follows:
   {
       type  => 'Alias',
       value => Expression,
-      as    => String,
+      as    => Identifier,
   }
 
 =head3 Expression

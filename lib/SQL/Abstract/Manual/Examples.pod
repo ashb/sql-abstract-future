@@ -39,7 +39,10 @@ one. The SQL used is from the MySQL dialect.
                   type     => 'Function',
                   function => 'NOW',
               },
-              as => 'time',
+              as => {
+                  type => 'Identifier',
+                  element1 => 'time',
+              },
           },
       ],
       tables => {
@@ -48,7 +51,10 @@ one. The SQL used is from the MySQL dialect.
               type => 'Identifier',
               element1 => 'dual',
           },
-          as => 'duality',
+          as => {
+              type => 'Identifier',
+              element1 => 'duality',
+          },
       },
   }
 
@@ -444,6 +450,38 @@ one. The SQL used is from the MySQL dialect.
                   value => 10,
               },
           ],
+      },
+  }
+
+=item * SELECT * FROM ( SELECT 1 ) AS foo
+
+  {
+      type => 'select',
+      ast_version => 0.0001,
+      select => [
+          {
+              type => 'Identifier',
+              element1 => '*',
+          },
+      ],
+      tables => {
+          type => 'Identifier',
+          element1 => 'foo',
+          value => {
+              type => 'select',
+              ast_version => 0.0001,
+              select => [
+                  {
+                      type    => 'Value',
+                      subtype => 'Number',
+                      value   => 1,
+                  },
+              ],
+          },
+          as => {
+              type => 'Identifier',
+              element1 => 'foo',
+          },
       },
   }
 
