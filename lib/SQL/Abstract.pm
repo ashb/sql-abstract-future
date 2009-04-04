@@ -110,6 +110,7 @@ class SQL::Abstract {
   );
 
   # TODO: once MXMS supports %args, use that here
+  # TODO: improve this so you can pass other args
   method create(ClassName $class: Int $ver) {
     croak "AST version $ver is greater than supported version of $AST_VERSION"
       if $ver > $AST_VERSION;

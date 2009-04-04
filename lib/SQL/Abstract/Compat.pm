@@ -5,7 +5,7 @@ class SQL::Abstract::Compat {
   use Moose::Util::TypeConstraints;
   use MooseX::Types::Moose qw/Str ScalarRef ArrayRef HashRef/;
   use SQL::Abstract::Types::Compat ':all';
-  use SQL::Abstract::Types qw/AST/;
+  use SQL::Abstract::Types qw/AST NameSeparator QuoteChars/;
   use SQL::Abstract::AST::v1;
   use Data::Dump qw/pp/;
   use Devel::PartialDump qw/dump/;
@@ -47,14 +47,43 @@ class SQL::Abstract::Compat {
     predicate => 'has_field_convertor'
   );
 
+  # TODO: a metaclass trait to automatically use this on vistior construction
+  has quote_char => (
+    is => 'rw',
+    isa => QuoteChars,
+    coerce => 1,
+    predicate => "has_quote_chars"
+  );
+
+  has name_sep => (
+    is => 'rw',
+    isa => NameSeparator,
+    predicate => "has_name_sep"
+  );
+
+  method _build_visitor() {
+    my %args = (
+      ast_version => 1
+    );
+    $args{quote_chars} = $self->quote_char
+      if $self->has_quote_chars;
+    $args{name_sep} = $self->name_sep
+      if $self->has_name_sep;
+
+    # TODO: this needs improving along with SQL::A::create
+    my $visitor = SQL::Abstract::AST::v1->new(%args);
+  } 
+
   method select(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
                 WhereType $where?,
                 WhereType $order?)
   {
     my $ast = $self->select_ast($from,$fields,$where,$order);
 
-    return ($self->visitor->dispatch($ast), $self->visitor->binds);
+    $DB::single = 1;
+    return ($self->visitor->dispatch($ast), @{$self->visitor->binds});
   }
+
   method select_ast(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
                 WhereType $where?,
                 WhereType $order?)
@@ -72,6 +101,12 @@ class SQL::Abstract::Compat {
 
     $ast->{where} = $self->recurse_where($where)
       if defined $where;
+
+    if (defined $order) {
+      my @order = is_ArrayRef($order) ? @$order : $order;
+      $ast->{order_by} = [ map { $self->mk_name(0, $_) } @order ];
+    }
+
     return $ast;
   }
 
@@ -88,13 +123,15 @@ class SQL::Abstract::Compat {
     return $ret;
   }
 
-  method _build_visitor() {
-    return SQL::Abstract->create(1);
-  } 
 
+  # method mk_name(Bool $use_convert, Str @names) {
   sub mk_name {
-    my ($self, $use_convert) = (shift,shift);
-    my $ast = { -type => 'name', args => [ @_ ] };
+    my ($self, $use_convert, @names) = @_;
+
+    @names = split /\Q@{[$self->name_sep]}\E/, $names[0]
+      if (@names == 1 && $self->has_name_sep);
+
+    my $ast = { -type => 'name', args => [ @names ] };
 
     return $ast
       unless $use_convert && $self->has_field_convertor;
@@ -104,6 +141,14 @@ class SQL::Abstract::Compat {
 
   method tablespec(Str|ArrayRef|ScalarRef $from) {
     return $self->mk_name(0, $from)
+      if is_Str($from);
+
+    return {
+      -type => 'list',
+      args => [ map {
+        $self->mk_name(0, $_)
+      } @$from ]
+    };
   }
 
   method recurse_where(WhereType $ast, LogicEnum $logic?) returns (AST) {
