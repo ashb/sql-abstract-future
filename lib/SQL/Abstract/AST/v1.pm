@@ -86,6 +86,37 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       confess "'$_' is required in update AST with " . dump ($ast)
         unless exists $ast->{$_};
     }
+
+    my $table = $ast->{tablespec};
+    confess 'update: tablespec must be an ident or an alias in ' . dump($ast)
+      unless $table->{-type} =~ /^identifier|alias$/;
+
+    my @output = (
+        'UPDATE',
+        $self->dispatch($table),
+        'SET'
+    );
+
+    confess 'update: number of columns doesn\'t match values: ' . dump($ast)
+      if @{$ast->{columns}} != @{$ast->{values}};
+    
+    $DB::single = 1;
+    my $list = {
+      -type => 'list',
+      args => [ map {
+        { -type => 'expr',
+          op => '==', # This should really be '=' but hmmmmmmmm
+          args => [
+            $ast->{columns}[$_],
+            $ast->{values}[$_]
+          ]
+        }
+      } 0..$#{$ast->{columns}} ]
+    };
+
+    push @output, $self->dispatch($list);
+      
+    return join(' ', @output);
     
   }
 

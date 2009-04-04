@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 5;
+use Test::More tests => 2;
 use Test::Differences;
 
 use FindBin;
@@ -10,6 +10,7 @@ use Test::SQL::Abstract::Util qw/
   mk_name
   mk_value
   mk_alias
+  mk_expr
   :dumper_sort
 /;
 
@@ -29,5 +30,5 @@ is $sqla->dispatch(
       mk_value('localhost'),
     ]
   }
-), "UPDATE test SET me.id = me.id + 5, hostnameme = localhost"
+), "UPDATE test SET me.id = me.id + ?, hostname = ?",
    "update clause";
