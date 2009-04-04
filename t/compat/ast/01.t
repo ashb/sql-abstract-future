@@ -3,7 +3,12 @@ use warnings;
 
 use FindBin;
 use lib "$FindBin::Bin/../../lib";
-use SQLADumperSort;
+use Test::SQL::Abstract::Util qw/
+  mk_name
+  mk_value
+  field_op_value
+  :dumper_sort
+/;
 
 use SQL::Abstract::Compat;
 
@@ -324,30 +329,6 @@ eq_or_diff
   },
   "Complex AST [ {a => [1,2],b => 3}, { c => 4 }, { d => [5,6,7], e => { '!=' => [8,9] }, q => {'not in' => [10,11] } } ]";
 
-sub field_op_value {
-  my ($field, $op, $value) = @_;
-
-  $field = ref $field eq 'HASH'
-         ? $field
-         : ref $field eq 'ARRAY' 
-         ? { -type => 'identifier', elements => $field } 
-         : { -type => 'identifier', elements => [$field] };
-
-  my @value = ref $value eq 'HASH'
-            ? $value
-            : ref $value eq 'ARRAY'
-            ? @$value
-            : { -type => 'value', value => $value };
-
-  return {
-    -type => 'expr',
-    op => $op,
-    args => [
-      $field,
-      @value
-    ]
-  };
-}
 
 sub upper { expr(UPPER => @_) }
 
@@ -361,16 +342,3 @@ sub expr {
   };
 }
 
-sub mk_name {
-  my ($field) = @_;
-  $field = ref $field eq 'HASH'
-         ? $field
-         : ref $field eq 'ARRAY' 
-         ? { -type => 'identifier', elements => $field } 
-         : { -type => 'identifier', elements => [$field] };
-  return $field;
-}
-
-sub mk_value {
-  return { -type => 'value', value => $_[0] }
-}

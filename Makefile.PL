@@ -12,6 +12,7 @@ requires 'Devel::PartialDump' => '0.9';
 
 test_requires 'Test::More';
 test_requires 'Test::Differences';
+test_requires 'Sub::Exporter';
 
 auto_provides_class();
 WriteAll;
