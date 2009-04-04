@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 14;
+use Test::More tests => 16;
 use Test::Differences;
 
 use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
@@ -190,3 +190,27 @@ is $sqla->dispatch(
   }
 ), "me.id LIKE ?", 
    "LIKE expr clause";
+
+
+is $sqla->dispatch(
+  { -type => 'expr',
+    op => '==',
+    args => [
+      {-type => name => args => [qw/me id/] },
+      { -type => 'value', value => undef }
+    ]
+  }
+), "me.id IS NULL",
+   "== undef";
+
+
+is $sqla->dispatch(
+  { -type => 'expr',
+    op => '!=',
+    args => [
+      {-type => name => args => [qw/me id/] },
+      { -type => 'value', value => undef }
+    ]
+  }
+), "me.id IS NOT NULL",
+   "!= undef";

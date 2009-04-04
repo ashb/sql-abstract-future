@@ -246,6 +246,15 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     my ($lhs, $rhs) = @{$ast->{args}};
     my $op = $ast->{op};
 
+    # IS NOT? NULL
+    if ($rhs->{-type} eq 'value' && !defined $rhs->{value} &&
+        ($op eq '==' || $op eq '!='))
+    {
+      return $self->_expr($lhs) .
+             ($op eq '==' ? " IS " : " IS NOT ") .
+             "NULL";
+    }
+
     join (' ', $self->_expr($lhs), 
                $self->binop_mapping($op) || croak("Unknown binary operator $op"),
                $self->_expr($rhs)
