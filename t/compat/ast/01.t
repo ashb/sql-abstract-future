@@ -13,8 +13,8 @@ use Test::Differences;
 ok(my $visitor = SQL::Abstract::Compat->new);
 
 
-my $foo_id = { -type => 'name', args => [qw/foo/] };
-my $bar_id = { -type => 'name', args => [qw/bar/] };
+my $foo_id = { -type => 'identifier', elements => [qw/foo/] };
+my $bar_id = { -type => 'identifier', elements => [qw/bar/] };
 
 my $foo_eq_1 = field_op_value($foo_id, '==', 1);
 my $bar_eq_str = field_op_value($bar_id, '==', 'some str');
@@ -133,7 +133,7 @@ my $worker_eq = sub {
     -type => 'expr',
     op => '==',
     args => [
-      { -type => 'name', args => ['worker'] },
+      { -type => 'identifier', elements => ['worker'] },
       { -type => 'value', value => $_[0] },
     ],
   }
@@ -180,8 +180,8 @@ eq_or_diff
     'test', '*', [ { ticket => [11, 12, 13] } ]
   ),
   { -type => 'select',
-    columns => [ { -type => 'name', args => ['*'] } ],
-    tablespec => { -type => 'name', args => ['test'] },
+    columns => [ { -type => 'identifier', elements => ['*'] } ],
+    tablespec => { -type => 'identifier', elements => ['test'] },
     where => $ticket_or_eq
   },
   "Complex AST with convert('UPPER')";
@@ -207,8 +207,8 @@ eq_or_diff
                  ]
   ),
   { -type => 'select',
-    columns => [ { -type => 'name', args => ['*'] } ],
-    tablespec => { -type => 'name', args => ['test'] },
+    columns => [ { -type => 'identifier', elements => ['*'] } ],
+    tablespec => { -type => 'identifier', elements => ['test'] },
     where => $hostname_and_ticket
   },
   "Complex AST mixing arrays+hashes with convert('UPPER')";
@@ -232,8 +232,8 @@ eq_or_diff
                  ]
   ),
   { -type => 'select',
-    columns => [ { -type => 'name', args => ['*'] } ],
-    tablespec => { -type => 'name', args => ['test'] },
+    columns => [ { -type => 'identifier', elements => ['*'] } ],
+    tablespec => { -type => 'identifier', elements => ['test'] },
     where => {
       -type => 'expr',
       op => 'or',
@@ -273,8 +273,8 @@ eq_or_diff
                  ]
   ),
   { -type => 'select',
-    columns => [ { -type => 'name', args => ['*'] } ],
-    tablespec => { -type => 'name', args => ['test'] },
+    columns => [ { -type => 'identifier', elements => ['*'] } ],
+    tablespec => { -type => 'identifier', elements => ['test'] },
     where => {
       -type => 'expr',
       op => 'or',
@@ -300,8 +300,8 @@ eq_or_diff
                  ]
   ),
   { -type => 'select',
-    columns => [ { -type => 'name', args => ['*'] } ],
-    tablespec => { -type => 'name', args => ['test'] },
+    columns => [ { -type => 'identifier', elements => ['*'] } ],
+    tablespec => { -type => 'identifier', elements => ['test'] },
     where => {
       -type => 'expr',
       op => 'or',
@@ -330,8 +330,8 @@ sub field_op_value {
   $field = ref $field eq 'HASH'
          ? $field
          : ref $field eq 'ARRAY' 
-         ? { -type => 'name', args => $field } 
-         : { -type => 'name', args => [$field] };
+         ? { -type => 'identifier', elements => $field } 
+         : { -type => 'identifier', elements => [$field] };
 
   my @value = ref $value eq 'HASH'
             ? $value
@@ -366,8 +366,8 @@ sub mk_name {
   $field = ref $field eq 'HASH'
          ? $field
          : ref $field eq 'ARRAY' 
-         ? { -type => 'name', args => $field } 
-         : { -type => 'name', args => [$field] };
+         ? { -type => 'identifier', elements => $field } 
+         : { -type => 'identifier', elements => [$field] };
   return $field;
 }
 

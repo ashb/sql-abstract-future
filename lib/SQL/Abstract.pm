@@ -75,7 +75,7 @@ class SQL::Abstract {
     required => 1
   );
 
-  has name_separator => ( 
+  has ident_separator => ( 
     is => 'rw', 
     isa => NameSeparator,
     default => '.',

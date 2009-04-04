@@ -67,7 +67,7 @@ class SQL::Abstract::Compat {
     );
     $args{quote_chars} = $self->quote_char
       if $self->has_quote_chars;
-    $args{name_sep} = $self->name_sep
+    $args{ident_separator} = $self->name_sep
       if $self->has_name_sep;
 
     # TODO: this needs improving along with SQL::A::create
@@ -131,7 +131,7 @@ class SQL::Abstract::Compat {
     @names = split /\Q@{[$self->name_sep]}\E/, $names[0]
       if (@names == 1 && $self->has_name_sep);
 
-    my $ast = { -type => 'name', args => [ @names ] };
+    my $ast = { -type => 'identifier', elements => [ @names ] };
 
     return $ast
       unless $use_convert && $self->has_field_convertor;

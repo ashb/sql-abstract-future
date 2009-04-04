@@ -10,22 +10,22 @@ use_ok('SQL::Abstract::AST::v1') or BAIL_OUT( "$@" );
 my $sqla = SQL::Abstract->create(1);
 
 # TODO: once MXMS supports %args, use that here
-is $sqla->dispatch( { -type => 'name', args => [qw/me id/] }), "me.id",
-  "Simple name generator";
+is $sqla->dispatch( { -type => 'identifier', elements => [qw/me id/] }), "me.id",
+  "Simple identifier generator";
 
-is $sqla->dispatch( { -type => 'name', args => ['*'] } ),
+is $sqla->dispatch( { -type => 'identifier', elements => ['*'] } ),
    "*",
-   "* name generator";
+   "* identifier generator";
 
-is $sqla->dispatch( { -type => 'name', args => [qw/me */]}),
+is $sqla->dispatch( { -type => 'identifier', elements => [qw/me */]}),
    "me.*",
-   "Simple name generator";
+   "Simple identifier generator";
 
 $sqla->quote_chars(['`']);
 
-is $sqla->dispatch( { -type => 'name', args => [qw/me */]}),
+is $sqla->dispatch( { -type => 'identifier', elements => [qw/me */]}),
    "`me`.*",
-   "Simple name generator";
+   "Simple identifier generator";
 
 $sqla->disable_quoting;
 
@@ -40,16 +40,16 @@ is $sqla->dispatch(
 is $sqla->dispatch(
   { -type => 'list',
     args => [
-      { -type => name => args => [qw/me id/] },
-      { -type => name => args => [qw/me foo bar/] },
-      { -type => name => args => [qw/bar/] }
+      { -type => identifier => elements => [qw/me id/] },
+      { -type => identifier => elements => [qw/me foo bar/] },
+      { -type => identifier => elements => [qw/bar/] }
     ] 
   }
 ), "me.id, me.foo.bar, bar",
   "List generator";
 
 is $sqla->dispatch(
-  { -type => 'alias', ident => { -type => name => args => [qw/me id/]}, as => "foobar" } 
+  { -type => 'alias', ident => { -type => identifier => elements => [qw/me id/]}, as => "foobar" } 
 ), "me.id AS foobar",
   "Alias generator";
 

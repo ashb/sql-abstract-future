@@ -8,12 +8,12 @@ use_ok('SQL::Abstract') or BAIL_OUT( "$@" );
 
 my $sqla = SQL::Abstract->create(1);
 
-my $foo = {-type => name => args => [qw/foo/]};
-my $bar = {-type => name => args => [qw/bar/]},
-my $fnord = {-type => name => args => [qw/fnord/]};
+my $foo = {-type => identifier => elements => [qw/foo/]};
+my $bar = {-type => identifier => elements => [qw/bar/]},
+my $fnord = {-type => identifier => elements => [qw/fnord/]};
 
-my $foo_id = { -type => 'name', args => [qw/foo id/] };
-my $me_foo_id = { -type => 'name', args => [qw/me foo_id/] };
+my $foo_id = { -type => 'identifier', elements => [qw/foo id/] };
+my $me_foo_id = { -type => 'identifier', elements => [qw/me foo_id/] };
 
 is $sqla->dispatch(
   { -type => 'join',
@@ -29,7 +29,7 @@ is $sqla->dispatch(
    "simple join clause";
 
 
-$foo_id = { -type => 'name', args => [qw/foo_id/] };
+$foo_id = { -type => 'identifier', elements => [qw/foo_id/] };
 
 is $sqla->dispatch(
   { -type => 'join',

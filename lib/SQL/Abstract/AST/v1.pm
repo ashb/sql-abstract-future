@@ -25,7 +25,7 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       or => $self->can('_recurse_where'),
       map { +"$_" => $self->can("_$_") } qw/
         value
-        name
+        identifier
         true
         false
         expr
@@ -116,10 +116,10 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return $output;
   }
 
-  method _name(AST $ast) {
-    my @names = @{$ast->{args}};
+  method _identifier(AST $ast) {
+    my @names = @{$ast->{elements}};
 
-    my $sep = $self->name_separator;
+    my $sep = $self->ident_separator;
     my $quote = $self->is_quoting 
               ? $self->quote_chars
               : [ '' ];

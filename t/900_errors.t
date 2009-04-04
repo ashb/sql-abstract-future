@@ -12,8 +12,8 @@ throws_ok {
   $sqla->dispatch(
     { -type => 'expr', op => '==',
       args => [
-        { -type => 'name', args => [qw/me id/] },
-        { -type => 'alias', ident => { -type => 'name', args => [qw/me id/] }, as => 'bar' }
+        { -type => 'identifier', elements => [qw/me id/] },
+        { -type => 'alias', ident => { -type => 'identifier', elements => [qw/me id/] }, as => 'bar' }
       ]
     }
   )
@@ -35,7 +35,7 @@ throws_ok {
 
 throws_ok {
   $sqla->dispatch(
-    { -type => 'alias', iden => { -type => 'name', args => ['id'] }, as => 'foo' } # iden not ident
+    { -type => 'alias', iden => { -type => 'identifier', elements => ['id'] }, as => 'foo' } # iden not ident
   )
 } qr/foobar/, "alias: iden instead of ident";
 

@@ -16,7 +16,7 @@ is $sqla->dispatch(
       { -type => 'expr',
         op => 'ROUND',
         args => [
-          {-type => name => args => [qw/me id/] }, 
+          {-type => identifier => elements => [qw/me id/] }, 
         ]
       },
       { -type => 'expr',
@@ -41,7 +41,7 @@ is $sqla->dispatch(
   { -type => 'expr',
     op => 'between',
     args => [
-      {-type => name => args => [qw/me id/] }, 
+      {-type => identifier => elements => [qw/me id/] }, 
       { -type => 'value', value => 500 },
       { -type => 'value', value => 599 },
     ],

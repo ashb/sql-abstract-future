@@ -10,16 +10,16 @@ my $sqla = SQL::Abstract->create(1);
 
 my $foo_as_me = {
   -type => 'alias', 
-  ident => {-type => 'name', args => [qw/foo/]}, 
+  ident => {-type => 'identifier', elements => [qw/foo/]}, 
   as => 'me'
 };
-my $me_foo_id = { -type => 'name', args => [qw/me foo_id/] };
+my $me_foo_id = { -type => 'identifier', elements => [qw/me foo_id/] };
 
 is $sqla->dispatch(
   { -type => 'select',
     tablespec => $foo_as_me,
     columns => [
-      { -type => 'name', args => [qw/me id/] },
+      { -type => 'identifier', elements => [qw/me id/] },
       { -type => 'alias', ident => $me_foo_id, as => 'foo' },
     ]
   }
@@ -29,20 +29,20 @@ is $sqla->dispatch(
 is $sqla->dispatch(
   { -type => 'select',
     columns => [
-      { -type => 'name', args => [qw/me id/] },
+      { -type => 'identifier', elements => [qw/me id/] },
       { -type => 'alias', ident => $me_foo_id, as => 'foo' },
-      { -type => 'name', args => [qw/bar name/] },
+      { -type => 'identifier', elements => [qw/bar name/] },
     ],
     tablespec => {
       -type => 'join',
       lhs => $foo_as_me,
-      rhs => {-type => 'name', args => [qw/bar/] },
+      rhs => {-type => 'identifier', elements => [qw/bar/] },
       on => {
         -type => 'expr',
         op => '==',
         args => [
-          {-type => 'name', args => [qw/bar id/]}, 
-          {-type => 'name', args => [qw/me bar_id/]}
+          {-type => 'identifier', elements => [qw/bar id/]}, 
+          {-type => 'identifier', elements => [qw/me bar_id/]}
         ],
       }
     },
@@ -56,14 +56,14 @@ is $sqla->dispatch(
 is $sqla->dispatch(
   { -type => 'select',
     columns => [
-      { -type => 'name', args => [qw/me */] },
+      { -type => 'identifier', elements => [qw/me */] },
     ],
     tablespec => $foo_as_me,
     where => {
       -type => 'expr',
       op => '==',
       args => [
-        {-type => 'name', args => [qw/me id/]},
+        {-type => 'identifier', elements => [qw/me id/]},
         {-type => 'value', value => 1 },
       ]
     }
@@ -78,11 +78,11 @@ is $sqla->dispatch(
   { -type => 'select',
     tablespec => $foo_as_me,
     columns => [
-      { -type => 'name', args => [qw/me id/] },
+      { -type => 'identifier', elements => [qw/me id/] },
       { -type => 'alias', ident => $me_foo_id, as => 'foo' },
     ],
     order_by => [
-      { -type => 'ordering', expr => { -type => 'name', args => [qw/me name/] }, direction => 'desc' },
+      { -type => 'ordering', expr => { -type => 'identifier', elements => [qw/me name/] }, direction => 'desc' },
       $me_foo_id,
     ]
   }

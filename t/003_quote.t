@@ -13,16 +13,16 @@ lives_ok {
 } "coercion of quote_chars from Str works";
 
 
-is $sqla->dispatch( { -type => 'name', args => [qw/me id/] }), 
+is $sqla->dispatch( { -type => 'identifier', elements => [qw/me id/] }), 
    "[me].[id]",
    "me.id";
 
 
-is $sqla->dispatch( { -type => 'name', args => [qw/me */] }), 
+is $sqla->dispatch( { -type => 'identifier', elements => [qw/me */] }), 
    "[me].*",
    "me.*";
 
 
-is $sqla->dispatch( { -type => 'name', args => [qw/*/] }), 
+is $sqla->dispatch( { -type => 'identifier', elements => [qw/*/] }), 
    "*",
    "*";

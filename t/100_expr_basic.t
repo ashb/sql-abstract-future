@@ -12,7 +12,7 @@ is $sqla->dispatch(
   { -type => 'expr',
     op => '>',
     args => [
-      {-type => name => args => [qw/me id/] }, 
+      {-type => identifier => elements => [qw/me id/] }, 
       { -type => 'value', value => 500 }
     ]
   }
@@ -23,7 +23,7 @@ is $sqla->dispatch(
   { -type => 'expr',
     op => '>',
     args => [
-      {-type => 'name', args => [qw/me id/]}, 
+      {-type => 'identifier', elements => [qw/me id/]}, 
       {-type => 'value', value => 500 }
     ]
   }
@@ -34,14 +34,14 @@ my $cols = [
   { -type => 'expr',
     op => '>',
     args => [
-      {-type => 'name', args => [qw/me id/]}, 
+      {-type => 'identifier', elements => [qw/me id/]}, 
       {-type => 'value', value => 500 }
     ]
   },
   { -type => 'expr',
     op => '==',
     args => [
-      {-type => 'name', args => [qw/me name/]}, 
+      {-type => 'identifier', elements => [qw/me name/]}, 
       {-type => 'value', value => '200' }
     ]
   },
@@ -73,7 +73,7 @@ is $sqla->dispatch(
   { -type => 'expr', op => 'or',
     args => [
       { -type => 'expr', op => '==', 
-        args => [ {-type => 'name', args => [qw/me name/] }, {-type => 'value', value => 500 } ]
+        args => [ {-type => 'identifier', elements => [qw/me name/] }, {-type => 'value', value => 500 } ]
       },
       { -type => 'expr', op => 'or', args => $cols }
     ]
@@ -85,7 +85,7 @@ is $sqla->dispatch(
   { -type => 'expr', op => 'or',
     args => [
       { -type => 'expr', op => '==', 
-        args => [ {-type => 'name', args => [qw/me name/] }, {-type => 'value', value => 500 } ]
+        args => [ {-type => 'identifier', elements => [qw/me name/] }, {-type => 'value', value => 500 } ]
       },
       { -type => 'expr', op => 'and', args => $cols }
     ]
@@ -96,7 +96,7 @@ is $sqla->dispatch(
 is $sqla->dispatch(
   { -type => 'expr', op => 'and', args => [
       { -type => 'expr', op => '==', args => [
-          {-type => 'name', args => [qw/me id/] }, {-type => 'value', value => 200 } 
+          {-type => 'identifier', elements => [qw/me id/] }, {-type => 'value', value => 200 } 
         ],
       },
       { -type => 'expr', op => 'and', args => $cols }
@@ -109,7 +109,7 @@ is $sqla->dispatch(
 is $sqla->dispatch(
   { -type => 'expr', op => 'and', args => [
       { -type => 'expr', op => '==', args => [
-          {-type => 'name', args => [qw/me id/] }, {-type => 'value', value => 200 } 
+          {-type => 'identifier', elements => [qw/me id/] }, {-type => 'value', value => 200 } 
         ],
       },
       { -type => 'expr', op => 'or', args => $cols }
@@ -125,7 +125,7 @@ is $sqla->dispatch(
 is $sqla->dispatch(
   { -type => 'expr', 
     op => 'in', 
-    args => [ { -type => 'name', args => ['foo'] } ],
+    args => [ { -type => 'identifier', elements => ['foo'] } ],
   }
 ), "0 = 1", "emtpy -in";
 
@@ -138,7 +138,7 @@ eq_or_diff(
         { -type => 'expr',
           op => 'in',
           args => [
-            {-type => 'name', args => [qw/me id/] },
+            {-type => 'identifier', elements => [qw/me id/] },
             {-type => 'value', value => 100 },
             {-type => 'value', value => 200 },
             {-type => 'value', value => 300 },
@@ -163,7 +163,7 @@ eq_or_diff(
         { -type => 'expr',
           op => 'not_in',
           args => [
-            {-type => 'name', args => [qw/me id/] },
+            {-type => 'identifier', elements => [qw/me id/] },
             {-type => 'value', value => 100 },
             {-type => 'value', value => 200 },
             {-type => 'value', value => 300 },
@@ -184,7 +184,7 @@ is $sqla->dispatch(
   { -type => 'expr',
     op => 'like',
     args => [
-      {-type => name => args => [qw/me id/] }, 
+      {-type => identifier => elements => [qw/me id/] }, 
       { -type => 'value', value => 500 }
     ]
   }
@@ -196,7 +196,7 @@ is $sqla->dispatch(
   { -type => 'expr',
     op => '==',
     args => [
-      {-type => name => args => [qw/me id/] },
+      {-type => identifier => elements => [qw/me id/] },
       { -type => 'value', value => undef }
     ]
   }
@@ -208,7 +208,7 @@ is $sqla->dispatch(
   { -type => 'expr',
     op => '!=',
     args => [
-      {-type => name => args => [qw/me id/] },
+      {-type => identifier => elements => [qw/me id/] },
       { -type => 'value', value => undef }
     ]
   }
