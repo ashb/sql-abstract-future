@@ -1,0 +1,170 @@
+Date: Sat, 04 Apr 2009 11:53:37 -0700
+From: Darren Duncan <darren@darrenduncan.net>
+Subject: feedback on SQLA2
+
+
+Hello Rob Kinyon,
+
+Following our IRC conversation, here's some initial bits of feedback on SQLA2 as
+documented at
+http://github.com/ashb/sql-abstract/tree/6a0089031c12a6af04b2ed79a1d88c950f12c98d/lib/SQL/Abstract/Manual 
+
+; this will include a summary of some things said on IRC.
+
+--------
+
+1. First, ++ on the ast_version thing.  Having this is one of the most important
+initial features you can have, since especially if its use is mandatory, you've
+given yourself a huge amount of forward compatibility.  And you can evolve the
+spec in arbitrary ways in the future without worries of ambiguity on what
+version of your spec someone's AST is.
+
+I've been doing this myself for a long time in my Muldis D spec (see CPAN; its
+at v0.63.0 now), and that in turn was partly inspired by Perl 6's long names for
+both the Perl 6 spec itself as well as for Perl 6 modules.
+
+However, I would make a few changes to the way you do this (so it is more how I
+or Perl 6 do this):
+
+a.  Add an ast_authority tag also, so if someone else embraces and extends your
+AST format, implementations can tell apart whether a given ast_version refers to
+your dev path or their dev path.  The authority would be a string, analagous to
+a domain name or CPAN id.
+
+b.  Rather than making the version tag subservient to the 'type', make it a
+parent.  For example, your parent AST node should always be something like this:
+
+   [ 'SQLA', { auth => 'http://dbix.com', vnum => '0.0001' }, {
+     type => 'select',
+     select => [...],
+     tables => {...},
+   } ]
+
+That is, every AST is say a 2+-element array whose first element is 'SQLA' and
+whose last element is the thing that was your main element before and whose
+middle elements are further simple meta-data; the middle could also be inlined.
+
+Note that while generally you are using hashes of named elements rather than
+arrays, I believe the version declaration must be a notable exception; if your
+first element is simply your language name, then you don't have to be
+pre-limited by some choice of key name (like "language_name" or something) that
+others may not have agreed on.  Similarly to that the very first word in a Perl
+program is 'use perl' and the first word in a Muldis D program is "Muldis_D",
+the very first word in a SQLA2 AST should be "SQLA" or "SQL_Abstract" or some such.
+
+Note that programs which expect ASTs like this as input could be configured to
+just take the ['SQLA', auth, vers] part in advance as a config step and then
+take just the { type, ... } later, so to cut down on verbosity, your choice;
+this doesn't really alter the spec though since the spec says how to supply them
+as a combination if users choose so.
+
+So, I think that inversion will make your thing a lot more forwards compatible
+than it is now and give you even more freedom to evolve.
+
+Trust me.
+
+--------
+
+2. Having clearly defined GOALS is good.
+
+3. So ++ on your core being just the generic AST and that external DBMS-specific
+visitors come in from outside and query into that, rather than the generic
+calling out into the non.  This visitor pattern is good and appropriate for you.
+
+4. It looks like you are limiting yourself generally to the same feature set as
+SQLA1, that is basically DML for SELECT/INSERT/UPDATE/DELETE and that's it.  Now
+while I personally would (and have) gone the whole nine yards and supported full
+stored procedure/function/etc definitions, I can understand why you wouldn't.
+And so I won't say any more on this and just offer feedback within the general
+sandbox you've chosen to be in.
+
+5. Since your AST is supposed to be generic, I encourage you to have
+standard-defined specs for features that not necessarily all DBMSs directly
+have.  For example, the REPLACE INTO you use as an example.  Lots of people want
+to do that sort of thing.  So why not spec it generically like your
+SELECT/INSERT/etc, then DBMSs with a native REPLACE can translate it to that,
+and others can translate it into something more complicated like an if/else
+INSERT/UPDATE or something.
+
+6. Generally speaking, don't limit your AST by what is conceivably a single SQL
+statement for lowest common denominator DBMSs, but rather allow a single AST to
+contain something that you might have to issue multiple DBI prepare's or
+execute's to implement.  So let the visitor generate a Perl closure if necessary
+that wraps a DBI call, rather than simply produce a SQL statement; the
+parameters of said closure would match the SQL bind variables.  If you don't
+allow this then you are severely limiting yourself, or alternately you are
+making it so lots of use cases will only work on some DBMSs that can express
+them as a single SQL statement versus those that can't.
+
+7. Regarding your "Identifier" nodes, having the separate "element1", "element2"
+... keys is a really bad idea; instead, have the single key "elements" whose
+value is an arrayref; that can still degenerate to allowing a scalar for when
+there is just one element.
+
+8. You should have more Value subtypes defined than just String|Number|Null.
+For one thing, you need distinct subtypes for character strings and byte
+strings; I suggest calling them Text and Blob, these replacing String.  You also
+need a distinct Boolean type, and no, overloading Number for use as booleans
+doesn't cut it.  You should also have Integer as a distinct type from Number,
+and maybe call the latter Rational.  Arguably at least half the time, plain
+integers is what users actually want, and they sometimes have different
+semantics or conceptions than numbers at large.  That isn't essential but it is
+strongly recommended; and besides most SQL DBMSs treat those as distinct anyway
+so your mapping is more straightforward.  After the above, it is less critical
+that you explicitly support any other types, though timestamps etc are probably
+a good idea.
+
+9. It's very good that your structure is recursive and supports nested
+expressions and arbitrary operator calls and subqueries in the exact same format
+as a main query.  Note that I consider a subquery the same as a subexpression
+(every subexpression is either a value literal or a variable reference or a bind
+parameter or an operator call); it just happens to result in a rowset rather
+than a value of some other type.
+
+10. Your 'Operator' node should generalize towards UDTs.  Have the "op =>
+String" be such that by default it would just be an identifier name formatted
+like with a UDT (another reason to use an arrayref in #7), and however there
+will be a set of system-defined operators which your SQLA2 spec includes (such
+as [=, <, catenate, +, *, min, count, etc]) which visitors would translate to
+their DBMS's native analogy, and then next visitors may have their own knowledge
+of special ones, and only after that it would be treated as a UDT call.  As a
+corollary, all actual UDTs should be specified with a special syntax, eg, all
+must have an element-one of 'usr' and then next elements are schema name etc,
+and the ones not starting with 'usr' are assumed to be built-ins to the DBMS or
+special emulations by the visitor.
+
+11. Let me repeat that; you should have a clear syntax distinction for where an
+identifier is pointing towards a user-defined entity or a system-defined one.
+This is forwards compatible as users can name their own things whatever they
+want and there won't be any namespace conflicts with built-ins, ever.  Now if
+you want to go further into more formalized namespaces is up to you.
+
+12. ++ on making aliasing mandatory.  Something you want to do is ensure that
+every column of a rowset has a unique name, always.
+
+13. You should probably document that some uses of joins or subqueries are
+equivalent to some where expressions, such as those that just contain anded and
+ored equality tests, at least assuming a rowset input can be a value literal
+(like select without a from clause).
+
+--------
+
+So as for completeness, well you seem to be reasonably there in some senses.
+That is, you can go a long way with what you have now.  Of course, you could
+also stand to go a lot further, but one has to start somewhere.
+
+We can talk more about it after you've digested the above feedback.
+
+Now when do you actually plan to release SQLA2 for users anyway?
+
+Don't be rushed by me to put it out before its ready though.
+
+I keep getting closer to pushing the AST of Muldis D as a replacement for it
+anyway.  (Heck, the latest release even comes with a syntax coloring text editor
+language module towards whats defined so far.)  I still have that discussion
+from almost a year ago complete with NDA.
+
+Good luck with this project.
+
+-- Darren Duncan
+
