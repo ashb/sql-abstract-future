@@ -8,6 +8,7 @@ use Sub::Exporter -setup => {
     mk_name
     mk_value
     mk_alias
+    mk_expr
     field_op_value
   /],
   groups => [
@@ -63,6 +64,15 @@ sub mk_value {
   return { -type => 'value', value => $_[0] }
 }
 
+sub mk_expr {
+  my ($op, @args) = @_;
+
+  return {
+    -type => 'expr',
+    op => $op,
+    args => [@args]
+  };
+}
 
 sub field_op_value {
   my ($field, $op, $value) = @_;

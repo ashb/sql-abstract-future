@@ -80,6 +80,15 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     return join(' ', @output);
   }
 
+  method _update(AST $ast) {
+
+    for (qw/columns values tablespec/) {
+      confess "'$_' is required in update AST with " . dump ($ast)
+        unless exists $ast->{$_};
+    }
+    
+  }
+
   method _join(HashRef $ast) {
 
     # TODO: Validate join type

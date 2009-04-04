@@ -6,6 +6,7 @@ use lib "$FindBin::Bin/../../lib";
 use Test::SQL::Abstract::Util qw/
   mk_name
   mk_value
+  mk_expr
   field_op_value
   :dumper_sort
 /;
@@ -330,15 +331,6 @@ eq_or_diff
   "Complex AST [ {a => [1,2],b => 3}, { c => 4 }, { d => [5,6,7], e => { '!=' => [8,9] }, q => {'not in' => [10,11] } } ]";
 
 
-sub upper { expr(UPPER => @_) }
+sub upper { mk_expr(UPPER => @_) }
 
-sub expr {
-  my ($op, @args) = @_;
-
-  return {
-    -type => 'expr',
-    op => $op,
-    args => [@args]
-  };
-}
 
