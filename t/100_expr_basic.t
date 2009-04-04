@@ -90,7 +90,7 @@ is $sqla->dispatch(
       { -type => 'expr', op => 'and', args => $cols }
     ]
   }
-), "me.name = ? OR me.id > ? AND me.name = ?", 
+), "me.name = ? OR (me.id > ? AND me.name = ?)", 
    "expr clause (inner and)";
 
 is $sqla->dispatch(

@@ -46,6 +46,6 @@ is $sqla->dispatch(
       { -type => 'value', value => 599 },
     ],
   }
-), "me.id BETWEEN ? AND ?",
+), "(me.id BETWEEN ? AND ?)",
    "between";
 

@@ -205,7 +205,9 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
       if ($_->{-type} eq 'expr' && $_->{op} =~ /^(and|or)$/) {
         my $sub_prio = $SQL::Abstract::PRIO{$1}; 
 
-        if ($sub_prio <= $prio) {
+        if ($sub_prio == $prio) {
+          # When the element below has same priority, i.e. 'or' as a child of
+          # 'or', dont produce extra brackets
           push @output, $self->_recurse_where($_);
         } else {
           push @output, '(' . $self->_recurse_where($_) . ')';
@@ -279,10 +281,13 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
     croak "between requires 3 arguments: " . dump($ast)
       unless @values == 2;
 
-    return $self->_expr($field) .
+    # The brackets are to work round an issue with SQL::A::Test
+    return "(" .
+           $self->_expr($field) .
            $not . 
            " BETWEEN " .
-           join(" AND ", map { $self->dispatch($_) } @values );
+           join(" AND ", map { $self->dispatch($_) } @values ) .
+           ")";
   }
 
   # 'constants' that are portable across DBs
