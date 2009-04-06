@@ -379,18 +379,19 @@ one. The SQL used is from the MySQL dialect.
           element1 => 'foo',
       },
       set => [
-          {
-              type => 'SetComponent',
-              col  => {
+          [
+              {
                   type => 'Identifier,
                   element1 => 'col1',
               },
-              value => {
+          ],
+          [
+              {
                   type => 'Value',
                   subtype => 'Number',
                   value => 1,
               },
-          },
+          ],
       ],
   }
 
@@ -403,27 +404,29 @@ one. The SQL used is from the MySQL dialect.
           type => 'Identifier',
           element1 => 'foo',
       },
-      columns => [
-          {
-              type => 'Identifier,
-              element1 => 'col1',
-          },
-          {
-              type => 'Identifier,
-              element1 => 'col2',
-          },
-      ],
-      values => [
-          {
-              type => 'Value',
-              subtype => 'Number',
-              value => '1',
-          },
-          {
-              type => 'Value',
-              subtype => 'Number',
-              value => '3',
-          },
+      set => [
+          [
+              {
+                  type => 'Identifier,
+                  element1 => 'col1',
+              },
+              {
+                  type => 'Identifier,
+                  element1 => 'col2',
+              },
+          ],
+          [
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => '1',
+              },
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => '3',
+              },
+          ],
       ],
   }
 

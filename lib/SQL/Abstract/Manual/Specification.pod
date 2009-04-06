@@ -189,13 +189,10 @@ The hash will be structured as follows:
 
   {
       type     => 'Identifier',
-      element1 => Scalar,
-      element2 => Scalar,
-      element3 => Scalar,
+      elements => [ Scalar ],
   }
 
-If element3 exists, then element2 must exist. element1 must always exist. If a
-given element exists, then it must be defined and of non-zero length.
+All values in elements must be defined.
 
 Visitors are expected to, by default, quote all identifiers according to the SQL
 dialect's quoting scheme.
@@ -343,7 +340,7 @@ The following clauses are expected to be handled by Visitors for each statement:
 
 =over 4
 
-=item * SELECT
+=item * select
 
 =over 4
 
@@ -365,9 +362,7 @@ The following clauses are expected to be handled by Visitors for each statement:
 
 =item * tables
 
-=item * columns
-
-=item * values
+=item * set
 
 =back
 
@@ -426,6 +421,7 @@ The hash for an Operator within a tables clause will be composed as follows:
       type => 'Operator',
       op   => '< LEFT|RIGHT|FULL [ OUTER ] > | INNER | CROSS',
       on   => Expression,
+      args => [ Expression ],
   }
 
 A USING clause is syntactic sugar for an ON clause and, as such, is not provided
@@ -442,30 +438,20 @@ A where clause is composed of an Expression.
 
 This corresponds to the SET clause in an INSERT or UPDATE statement.
 
-A set clause unit is an array of one or more SetComponent units.
-
-The hash for SetComponent unit is composed as follows:
+The hash for an set clause will be composed as follows:
 
   {
-      type  => 'SetComponent',
-      col   => Identifier,
-      value => Expression,
+      type => 'Set',
+      args => [
+          [ Identifier ],
+          [ Expresion ],
+      ],
   }
 
-=head3 columns
-
-This corresponds to the optional list of columns in an INSERT statement.
-
-A columns clause unit is an array of one or more Identifier units.
-
-=head3 values
-
-This corresponds to the VALUES clause in an INSERT statement.
-
-A values clause unit is an array of one or more Expression units.
-
-If there is a columns clause, the number of entries in the values clause must be
-equal to the number of entries in the columns clause.
+The args is an array that is organized as follows: The first element is an array of
+Identifiers for the columns being set. The following arrays are Expressions describing
+the values. The various arrays should be the same length. The array of Identifiers can
+be omitted.
 
 =head3 orderby
 
@@ -568,7 +554,13 @@ Both the start_with and order_siblings clauses are optional.
 
 =item * INSERT INTO <table> SET ...
 
+=item * UPDATE foo me SET bar = 1 FROM fnord f WHERE me.col1 = f.frobinator
+
+=item * INSERT moves to using the SET terminology with Visitor dwimming
+
 =back
+
+Convert INSERT and UPDATE into ->populate form.
 
 =head1 AUTHORS
 
