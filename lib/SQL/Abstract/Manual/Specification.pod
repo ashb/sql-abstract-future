@@ -550,6 +550,18 @@ Both the start_with and order_siblings clauses are optional.
 
 =item * UNION, UNION ALL, and MINUS
 
+=item * AS is NOT required
+
+=item * remove BindParameter as a subtype in Value
+
+=item * start the API/Visitor guidelines
+
+=item * JOIN is now its own type
+
+=item * add additional subtypes in Value
+
+=item * Add a is_bind flag to Value
+
 =back
 
 Convert INSERT and UPDATE into ->populate form.
