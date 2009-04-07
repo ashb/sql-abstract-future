@@ -369,30 +369,36 @@ one. The SQL used is from the MySQL dialect.
       ],
   }
 
-=item * UPDATE foo SET col1 = 1
+=item * SELECT * FROM ( SELECT 1 ) AS foo
 
   {
-      type => 'update',
+      type => 'select',
       ast_version => 0.0001,
+      select => [
+          {
+              type => 'Identifier',
+              element1 => '*',
+          },
+      ],
       tables => {
           type => 'Identifier',
           element1 => 'foo',
+          value => {
+              type => 'select',
+              ast_version => 0.0001,
+              select => [
+                  {
+                      type    => 'Value',
+                      subtype => 'Number',
+                      value   => 1,
+                  },
+              ],
+          },
+          as => {
+              type => 'Identifier',
+              element1 => 'foo',
+          },
       },
-      set => [
-          [
-              {
-                  type => 'Identifier,
-                  element1 => 'col1',
-              },
-          ],
-          [
-              {
-                  type => 'Value',
-                  subtype => 'Number',
-                  value => 1,
-              },
-          ],
-      ],
   }
 
 =item * INSERT INTO foo ( col1, col2 ) VALUES ( 1, 3 )
@@ -430,6 +436,114 @@ one. The SQL used is from the MySQL dialect.
       ],
   }
 
+=item * INSERT INTO foo ( col1, col2 ) VALUES ( 1, 3 ), ( 2, 4 )
+
+  {
+      type => 'insert',
+      ast_version => 0.0001,
+      tables => {
+          type => 'Identifier',
+          element1 => 'foo',
+      },
+      set => [
+          [
+              {
+                  type => 'Identifier,
+                  element1 => 'col1',
+              },
+              {
+                  type => 'Identifier,
+                  element1 => 'col2',
+              },
+          ],
+          [
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => '1',
+              },
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => '3',
+              },
+          ],
+          [
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => '2',
+              },
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => '3',
+              },
+          ],
+      ],
+  }
+
+=item * UPDATE foo SET col1 = 1
+
+  {
+      type => 'update',
+      ast_version => 0.0001,
+      tables => {
+          type => 'Identifier',
+          element1 => 'foo',
+      },
+      set => [
+          [
+              {
+                  type => 'Identifier,
+                  element1 => 'col1',
+              },
+          ],
+          [
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => 1,
+              },
+          ],
+      ],
+  }
+
+=item * UPDATE foo SET col1 = 1, col2 = 6
+
+  {
+      type => 'update',
+      ast_version => 0.0001,
+      tables => {
+          type => 'Identifier',
+          element1 => 'foo',
+      },
+      set => [
+          [
+              {
+                  type => 'Identifier,
+                  element1 => 'col1',
+              },
+              {
+                  type => 'Identifier,
+                  element1 => 'col2',
+              },
+          ],
+          [
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => 1,
+              },
+              {
+                  type => 'Value',
+                  subtype => 'Number',
+                  value => 6,
+              },
+          ],
+      ],
+  }
+
 =item * DELETE FROM foo WHERE col1 = 10
 
   {
@@ -453,38 +567,6 @@ one. The SQL used is from the MySQL dialect.
                   value => 10,
               },
           ],
-      },
-  }
-
-=item * SELECT * FROM ( SELECT 1 ) AS foo
-
-  {
-      type => 'select',
-      ast_version => 0.0001,
-      select => [
-          {
-              type => 'Identifier',
-              element1 => '*',
-          },
-      ],
-      tables => {
-          type => 'Identifier',
-          element1 => 'foo',
-          value => {
-              type => 'select',
-              ast_version => 0.0001,
-              select => [
-                  {
-                      type    => 'Value',
-                      subtype => 'Number',
-                      value   => 1,
-                  },
-              ],
-          },
-          as => {
-              type => 'Identifier',
-              element1 => 'foo',
-          },
       },
   }
 
