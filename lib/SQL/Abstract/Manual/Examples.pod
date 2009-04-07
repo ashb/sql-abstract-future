@@ -41,7 +41,7 @@ one. The SQL used is from the MySQL dialect.
               },
               as => {
                   type => 'Identifier',
-                  element1 => 'time',
+                  args => [ 'time' ],
               },
           },
       ],
@@ -49,11 +49,11 @@ one. The SQL used is from the MySQL dialect.
           type => 'Alias',
           value => {
               type => 'Identifier',
-              element1 => 'dual',
+              args => [ 'dual' ],
           },
           as => {
               type => 'Identifier',
-              element1 => 'duality',
+              args => [ 'duality' ],
           },
       },
   }
@@ -76,11 +76,11 @@ one. The SQL used is from the MySQL dialect.
           args => [
               {
                   type => 'Identifier',
-                  element1 => 'foo',
+                  args => [ 'foo' ],
               },
               {
                   type => 'Identifier',
-                  element1 => 'bar',
+                  args => [ 'bar' ],
               },
           ],
           on => {
@@ -88,14 +88,12 @@ one. The SQL used is from the MySQL dialect.
               op   => '=',
               args => [
                   {
-                      type     => 'Identifier',
-                      element1 => 'foo',
-                      element2 => 'col1',
+                      type => 'Identifier',
+                      args => [ 'foo', 'col1' ],
                   },
                   {
-                      type     => 'Identifier',
-                      element1 => 'bar',
-                      element2 => 'col2',
+                      type => 'Identifier',
+                      args => [ 'bar', 'col2' ],
                   },
               ],
           },
@@ -109,26 +107,26 @@ one. The SQL used is from the MySQL dialect.
       ast_version => 0.0001,
       select => [
           {
-              type     => 'Identifier',
-              element1 => '*',
+              type => 'Identifier',
+              args => [ '*' ],
           },
       ],
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       where => {
           type => 'Operator',
           op   => '=',
           args => [
               {
-                  type     => 'Identifier',
-                  element1 => 'name',
+                  type => 'Identifier',
+                  args => [ 'name' ],
               },
               {
-                  type     => 'Value',
-                  subtype  => 'String',
-                  element1 => 'John',
+                  type    => 'Value',
+                  subtype => 'String',
+                  value   => 'John',
               },
           ],
       },
@@ -145,15 +143,15 @@ one. The SQL used is from the MySQL dialect.
               op   => 'COUNT',
               args => [
                   {
-                      type     => 'Identifier',
-                      element1 => '*',
+                      type => 'Identifier',
+                      args => [ '*' ],
                   },
               ],
           },
       ],
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       where => {
           type => 'Operator',
@@ -164,13 +162,13 @@ one. The SQL used is from the MySQL dialect.
                   op   => '=',
                   args => [
                       {
-                          type     => 'Identifier',
-                          element1 => 'name',
+                          type => 'Identifier',
+                          args => [ 'name' ],
                       },
                       {
-                          type     => 'Value',
-                          subtype  => 'String',
-                          element1 => 'John',
+                          type    => 'Value',
+                          subtype => 'String',
+                          value   => 'John',
                       },
                   ],
               },
@@ -183,13 +181,13 @@ one. The SQL used is from the MySQL dialect.
                           op   => '=',
                           args => [
                               {
-                                  type     => 'Identifier',
-                                  element1 => 'title',
+                                  type => 'Identifier',
+                                  args => [ 'title' ],
                               },
                               {
-                                  type     => 'Value',
-                                  subtype  => 'String',
-                                  element1 => 'Mr',
+                                  type    => 'Value',
+                                  subtype => 'String',
+                                  value   => 'Mr',
                               },
                           ],
                       },
@@ -198,13 +196,13 @@ one. The SQL used is from the MySQL dialect.
                           op   => '=',
                           args => [
                               {
-                                  type     => 'Identifier',
-                                  element1 => 'abbrev',
+                                  type => 'Identifier',
+                                  args => [ 'abbrev' ],
                               },
                               {
-                                  type     => 'Value',
-                                  subtype  => 'String',
-                                  element1 => 'Dr',
+                                  type    => 'Value',
+                                  subtype => 'String',
+                                  vaue    => 'Dr',
                               },
                           ],
                       },
@@ -229,8 +227,8 @@ one. The SQL used is from the MySQL dialect.
                       op   => 'DISTINCT',
                       args => [
                           {
-                              type     => 'Identifier',
-                              element1 => '*',
+                              type => 'Identifier',
+                              args => [ '*' ],
                           },
                       ],
                   },
@@ -239,7 +237,7 @@ one. The SQL used is from the MySQL dialect.
       ],
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       where => {
           type => 'Operator',
@@ -254,13 +252,13 @@ one. The SQL used is from the MySQL dialect.
                           op   => '=',
                           args => [
                               {
-                                  type     => 'Identifier',
-                                  element1 => 'name',
+                                  type => 'Identifier',
+                                  args => [ 'name' ],
                               },
                               {
-                                  type     => 'Value',
-                                  subtype  => 'String',
-                                  element1 => 'John',
+                                  type    => 'Value',
+                                  subtype => 'String',
+                                  value   => 'John',
                               },
                           ],
                       },
@@ -269,13 +267,13 @@ one. The SQL used is from the MySQL dialect.
                           op   => '=',
                           args => [
                               {
-                                  type     => 'Identifier',
-                                  element1 => 'title',
+                                  type => 'Identifier',
+                                  args => [ 'title' ],
                               },
                               {
-                                  type     => 'Value',
-                                  subtype  => 'String',
-                                  element1 => 'Mr',
+                                  type    => 'Value',
+                                  subtype => 'String',
+                                  value   => 'Mr',
                               },
                           ],
                       },
@@ -286,13 +284,13 @@ one. The SQL used is from the MySQL dialect.
                   op   => '=',
                   args => [
                       {
-                          type     => 'Identifier',
-                          element1 => 'abbrev',
+                          type => 'Identifier',
+                          args => [ 'abbrev' ],
                       },
                       {
                           type     => 'Value',
                           subtype  => 'String',
-                          element1 => 'Dr',
+                          value => 'Dr',
                       },
                   ],
               },
@@ -308,7 +306,7 @@ one. The SQL used is from the MySQL dialect.
       select => [
           {
               type => 'Identifier',
-              element1 => 'foo',
+              args => [ 'foo' ],
           },
           {
               type => 'Identifier',
@@ -316,19 +314,19 @@ one. The SQL used is from the MySQL dialect.
           },
           {
               type => 'Identifier',
-              element1 => 'baz',
+              args => [ 'baz' ],
           },
       ],
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       orderby => [
           {
               type  => 'OrderbyComponent',
               value => {
                   type => 'Identifier',
-                  element1 => 'bar',
+                  args => [ 'bar' ],
               },
               dir => 'ASC',
           },
@@ -336,7 +334,7 @@ one. The SQL used is from the MySQL dialect.
               type  => 'OrderbyComponent',
               value => {
                   type => 'Identifier',
-                  element1 => 'baz',
+                  args => [ 'baz' ],
               },
               dir => 'DESC',
           },
@@ -377,12 +375,12 @@ one. The SQL used is from the MySQL dialect.
       select => [
           {
               type => 'Identifier',
-              element1 => '*',
+              args => [ '*' ],
           },
       ],
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
           value => {
               type => 'select',
               ast_version => 0.0001,
@@ -396,7 +394,7 @@ one. The SQL used is from the MySQL dialect.
           },
           as => {
               type => 'Identifier',
-              element1 => 'foo',
+              args => [ 'foo' ],
           },
       },
   }
@@ -408,17 +406,17 @@ one. The SQL used is from the MySQL dialect.
       ast_version => 0.0001,
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       set => [
           [
               {
                   type => 'Identifier,
-                  element1 => 'col1',
+                  args => [ 'col1' ],
               },
               {
                   type => 'Identifier,
-                  element1 => 'col2',
+                  args => [ 'col2' ],
               },
           ],
           [
@@ -443,17 +441,17 @@ one. The SQL used is from the MySQL dialect.
       ast_version => 0.0001,
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       set => [
           [
               {
                   type => 'Identifier,
-                  element1 => 'col1',
+                  args => [ 'col1' ],
               },
               {
                   type => 'Identifier,
-                  element1 => 'col2',
+                  args => [ 'col2' ],
               },
           ],
           [
@@ -490,13 +488,13 @@ one. The SQL used is from the MySQL dialect.
       ast_version => 0.0001,
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       set => [
           [
               {
                   type => 'Identifier,
-                  element1 => 'col1',
+                  args => [ 'col1' ],
               },
           ],
           [
@@ -516,17 +514,17 @@ one. The SQL used is from the MySQL dialect.
       ast_version => 0.0001,
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       set => [
           [
               {
                   type => 'Identifier,
-                  element1 => 'col1',
+                  args => [ 'col1' ],
               },
               {
                   type => 'Identifier,
-                  element1 => 'col2',
+                  args => [ 'col2' ],
               },
           ],
           [
@@ -551,24 +549,68 @@ one. The SQL used is from the MySQL dialect.
       ast_version => 0.0001,
       tables => {
           type => 'Identifier',
-          element1 => 'foo',
+          args => [ 'foo' ],
       },
       where => {
           type => 'Operator',
           op   => '=',
           args => [
               {
-                  type     => 'Identifier',
-                  element1 => 'col1',
+                  type => 'Identifier',
+                  args => [ 'col1' ],
               },
               {
-                  type     => 'Value',
-                  subtype  => 'Number',
-                  value => 10,
+                  type    => 'Value',
+                  subtype => 'Number',
+                  value   => 10,
               },
           ],
       },
   }
+
+=item * INSERT INTO foo ( col1, col2 ) SELECT col1, col2 FROM bar;
+
+  {
+      type => 'insert',
+      ast_version => 0.0001,
+      tables => {
+          type => 'Identifier',
+          args => [ 'foo' ],
+      },
+      set => [
+          [
+              {
+                  type => 'Identifier,
+                  args => [ 'col1' ],
+              },
+              {
+                  type => 'Identifier,
+                  args => [ 'col2' ],
+              },
+          ],
+          [
+              {
+                  type => 'select',
+                  ast_version => 0.0001,
+                  select => [
+                      {
+                          type => 'Identifier',
+                          args => [ 'col1' ],
+                      },
+                      {
+                          type => 'Identifier',
+                          args => [ 'col2' ],
+                      },
+                  ],
+                  tables => {
+                      type => 'Identifier',
+                      args => [ 'bar' ],
+                  },
+              },
+          ],
+      ],
+  }
+
 
 =back
 
