@@ -550,14 +550,6 @@ Both the start_with and order_siblings clauses are optional.
 
 =item * UNION, UNION ALL, and MINUS
 
-=item * INSERT INTO <table> SELECT ...
-
-=item * INSERT INTO <table> SET ...
-
-=item * UPDATE foo me SET bar = 1 FROM fnord f WHERE me.col1 = f.frobinator
-
-=item * INSERT moves to using the SET terminology with Visitor dwimming
-
 =back
 
 Convert INSERT and UPDATE into ->populate form.
