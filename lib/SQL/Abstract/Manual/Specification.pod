@@ -218,15 +218,25 @@ A Number is an unquoted number in some numeric format.
 
 =item * Null
 
-Null is SQL's NULL and corresponds to Perl's C<undef>.
+A Null is SQL's NULL and corresponds to Perl's C<undef>.
 
-=item * BindParameter
+=item * Boolean
 
-This corresponds to a value that will be passed in. This value is normally
-quoted in such a fashion so as to protect against SQL injection attacks. (q.v.
-L<DBI/quote()> for an example.)
+A Boolean is a two-value entity - true or false. Some DBMSes provide an explicit
+boolean while others do not.
 
-BindParameters are normally represented by a '?'.
+=item * Date
+
+A Date represents (generally) a year, month, and day.
+
+=item * Time
+
+A Time represents (generally) an hour, minute, and second.
+
+=item * DateTime
+
+A DateTime represents the complete description necessary to determine a specific point in
+time. This could correspond to a L<DateTime/> object in Perl.
 
 =back
 
@@ -234,13 +244,17 @@ The hash will be structured as follows:
 
   {
       type    => 'Value'
-      subtype => [ 'String' | 'Number' | 'Null' | 'BindParameter' ]
+      subtype => [ 'String' | 'Number' | 'Null' | 'Boolean' | 'Date' | 'Time' | 'DateTime' ]
       value   => Scalar
+      is_bind => Boolean
   }
 
 The provided subtypes are the ones that all Visitors are expected to support.
 Visitors may choose to support additional subtypes. Visitors are expected to
 throw an exception upon encountering an unknown subtype.
+
+C<is_bind> defaults to true. It determines whether or not the Visitor should
+attempt to treat this value as a BindParameter or not.
 
 =head3 Operator
 
@@ -291,8 +305,7 @@ Subqueries, when expressed in SQL, must be bounded by parentheses.
 
 =head3 Alias
 
-An Alias is any place where the construct "X as Y" appears. While the "as Y" is
-often optional, the AST will make it required.
+An Alias is any place where the construct "X as Y" appears; it is the "AS Y" part.
 
 The hash will be structured as follows:
 
@@ -412,13 +425,12 @@ The tables clause has several RDBMS-specific variations. The AST will support
 all of them and it is up to the Visitor object constructing the actual SQL to
 validate and/or use what is provided as appropriate.
 
-A tables clause is an Expression.
+A tables clause is an Expression that also allows for Joins.
 
-The hash for an Operator within a tables clause will be composed as follows:
+The hash for an Join within a tables clause will be composed as follows:
 
-  # Operator
   {
-      type => 'Operator',
+      type => 'Join',
       op   => '< LEFT|RIGHT|FULL [ OUTER ] > | INNER | CROSS',
       on   => Expression,
       args => [ Expression ],
@@ -520,28 +532,6 @@ The hash for a for clause is composed as follows:
       value => '< UPDATE | DELETE >',
   }
 
-=head3 connectby
-
-This corresponds to the clause that is used in some RDBMS engines to provide for
-an adjacency-list query.
-
-The hash for a for clause is composed as follows:
-
-  {
-      start_with => [
-          Expression,
-      ],
-      connect_by => {
-          option => '< PRIOR | NOCYCLE >'
-          cond => [
-              Expression,
-          ],
-      },
-      order_siblings => orderby-clause,
-  }
-
-Both the start_with and order_siblings clauses are optional.
-
 =head1 TODO
 
 =over 4
@@ -550,17 +540,7 @@ Both the start_with and order_siblings clauses are optional.
 
 =item * UNION, UNION ALL, and MINUS
 
-=item * AS is NOT required
-
-=item * remove BindParameter as a subtype in Value
-
-=item * start the API/Visitor guidelines
-
-=item * JOIN is now its own type
-
-=item * add additional subtypes in Value
-
-=item * Add a is_bind flag to Value
+=item * start the API guidelines
 
 =back
 

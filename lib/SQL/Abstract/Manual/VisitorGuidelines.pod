@@ -1,0 +1,27 @@
+=head1 NAME
+
+SQL::Abstract::Manual::VisitorGuidelines
+
+=head1 SYNOPSIS
+
+This is a companion document to L<SQL::Abstract::Manual::Specification/>. These
+guidelines should be taken as a set of common understandings. Where possible, all
+Visitors should adhere to these guidelines so that there is a common set of
+behaviors across all visitors.
+
+=head1 GUIDELINES
+
+=head2 Identifier Quoting
+
+Emitters should provide as much identifier quoting as possible. Ideally, all identifiers
+would be quoted.
+
+=head1 AUTHORS
+
+robkinyon: Rob Kinyon C<< <rkinyon@cpan.org> >>
+
+=head1 LICENSE
+
+You may distribute this code under the same terms as Perl itself.
+
+=cut
