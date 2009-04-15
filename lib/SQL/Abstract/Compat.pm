@@ -80,8 +80,21 @@ class SQL::Abstract::Compat {
   {
     my $ast = $self->select_ast($from,$fields,$where,$order);
 
-    $DB::single = 1;
     return ($self->visitor->dispatch($ast), @{$self->visitor->binds});
+  }
+
+  method update(Str|ArrayRef|ScalarRef $from,   
+                HashRef $fields, WhereType $where? )
+  {
+    my $ast = $self->update_aste($from,$fields,$where);
+
+    return ($self->visitor->dispatch($ast), @{$self->visitor->binds});
+  }
+
+  method update_ast(Str|ArrayRef|ScalarRef $from,   
+                    HashRef $fields, WhereType $where? ) 
+  {
+    return { -type => 'update' };
   }
 
   method select_ast(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
