@@ -152,3 +152,21 @@ class SQL::Abstract {
   }
 
 };
+
+__END__
+
+=head1 NAME
+
+SQL::Abstract - AST based re-implementation of SQL::Abstract
+
+=head1 LICENSE
+
+=head1 AUTHORS
+
+Ash Berlin C<< <ash@cpan.org> >>
+
+=head1 LICENSE
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
