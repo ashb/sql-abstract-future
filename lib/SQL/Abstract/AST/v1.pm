@@ -97,10 +97,9 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
         'SET'
     );
 
-    confess 'update: number of columns doesn\'t match values: ' . dump($ast)
+    confess 'update: Number of values does not match columns: ' . dump($ast)
       if @{$ast->{columns}} != @{$ast->{values}};
     
-    $DB::single = 1;
     my $list = {
       -type => 'list',
       args => [ map {

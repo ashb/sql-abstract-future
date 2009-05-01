@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 6;
+use Test::More tests => 7;
 use Test::Exception;
 
 use FindBin;
@@ -60,4 +60,19 @@ throws_ok {
       ]
     }
   )
-} qr/^'values' is required in update AST/, "Invalid clause in update"
+} qr/^'values' is required in update AST/, "Invalid clause in update";
+
+
+throws_ok { $sqla->dispatch(
+  { -type => 'update',
+    tablespec => mk_name('test'),
+    columns => [
+      mk_name(qw/me id/),
+      mk_name(qw/hostname/),
+    ],
+    values => [
+      mk_value('localhost'),
+    ]
+  } )
+} qr/Number of values does not match columns/,
+  "Column/values count mismatch in update";

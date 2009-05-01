@@ -86,7 +86,7 @@ class SQL::Abstract::Compat {
   method update(Str|ArrayRef|ScalarRef $from,   
                 HashRef $fields, WhereType $where? )
   {
-    my $ast = $self->update_aste($from,$fields,$where);
+    my $ast = $self->update_ast($from,$fields,$where);
 
     return ($self->visitor->dispatch($ast), @{$self->visitor->binds});
   }
