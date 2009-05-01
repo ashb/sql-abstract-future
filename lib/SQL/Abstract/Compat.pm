@@ -94,7 +94,20 @@ class SQL::Abstract::Compat {
   method update_ast(Str|ArrayRef|ScalarRef $from,   
                     HashRef $fields, WhereType $where? ) 
   {
-    return { -type => 'update' };
+    my (@columns, @values);
+    my $ast = {
+      -type => 'update',
+      tablespec => $self->tablespec($from),
+      columns => \@columns,
+      values => \@values
+    };
+
+    for (keys %$fields) {
+      push @columns, $self->mk_name(0, $_);
+      push @values, { -type => 'value', value => $fields->{$_} };
+    }
+
+    return $ast;
   }
 
   method select_ast(Str|ArrayRef|ScalarRef $from, ArrayRef|Str $fields,
