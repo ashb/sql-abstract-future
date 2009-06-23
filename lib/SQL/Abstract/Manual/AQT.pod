@@ -1,0 +1,93 @@
+=head1 NAME
+
+SQL::Abstract::Manual::AQT
+
+=head1 AUTHORS
+
+robkinyon: Rob Kinyon C<< <rkinyon@cpan.org> >>
+
+=head1 SYNOPSIS
+
+The AST is a first attempt to write an abstract syntax tree for SQL.
+=head1 MOTIVATIONS
+
+=head1 GOALS
+
+In talks with mst (Matt Trout), the final goal is something called Data::Query -
+a generalized querying module that can emit queries on any datasource. This
+means we need a more generalized parse tree to work with more generalized
+querying.  
+
+=head1 COMPONENTS
+
+There are two major components to SQL::Abstract v2.
+
+=over 4
+
+=item * AQT
+
+This is the Abstract Query Tree. It is a data structure that represents
+everything necessary to construct the query in whatever form the user requires.
+
+=item * Visitor
+
+This object conforms to the Visitor pattern and is used to generate the query
+represented by the AQT. This could be anything from a SQL query (in a given
+dialect) to a Perl function that works on an AoH.
+
+=back
+
+The division of duties between the two components will focus on what the AQT
+can and cannot assume. The AQT will provide as many operators and functions that
+make sense for it to have. However, the Visitor is expected to enforce as much
+as is necessary for the Visitor to emit a proper query.
+
+=head1 AQT STRUCTURE
+
+The AQT will be a HoHo...oH (hash of hashes of ... of hashes). The keys of the
+outermost hash will be the various clauses of a generalized query, plus some
+metadata.
+
+=head2 Metadata
+
+=head2 Structural Units
+
+All structural units will have, at minimum, the following keys.
+
+=over 4
+
+=item * type
+
+This indicates the structural unit that this hash is representing. While this
+specification provides for standard structural units, different Visitors may
+choose to accept additional units as desired. If a Visitor encounters a unit it
+doesn't know how to handle, it is expected to throw an exception. 
+
+=back
+
+Structural units in the AQT are supported by loaded components. This will allow
+for easy extension. The following components are provided by default:
+
+=head3 Identifier
+
+=head3 Value
+
+=head3 Operator
+
+An operator is anything that does a transformation. Operators can be unary,
+binary, trinary, or a function. The AQT treats all operators as functions which
+take lazy lists as their operands (a la Lisp). 
+
+=head1 TODO
+
+=over 4
+
+=item * (Fill in here)
+
+=back
+
+=head1 LICENSE
+
+You may distribute this code under the same terms as Perl itself.
+
+=cut
