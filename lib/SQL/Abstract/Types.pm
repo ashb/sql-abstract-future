@@ -1,5 +1,5 @@
 use MooseX::Declare;
-class SQL::Abstract::Types {
+class SQL::Abstract::Types is dirty {
   use Moose::Util::TypeConstraints;
   use MooseX::Types::Moose qw/ArrayRef Str Int Ref HashRef/;
 

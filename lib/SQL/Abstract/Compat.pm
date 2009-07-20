@@ -12,7 +12,6 @@ class SQL::Abstract::Compat {
   use Carp qw/croak/;
 
   class_type 'SQL::Abstract';
-  clean;
 
   has logic => (
     is => 'rw',
@@ -107,6 +106,9 @@ class SQL::Abstract::Compat {
       push @values, { -type => 'value', value => $fields->{$_} };
     }
 
+    $ast->{where} = $self->recurse_where($where)
+      if defined $where;
+
     return $ast;
   }
 
@@ -177,14 +179,14 @@ class SQL::Abstract::Compat {
     };
   }
 
-  method recurse_where(WhereType $ast, LogicEnum $logic?) returns (AST) {
+  method recurse_where(WhereType $ast, LogicEnum $logic?) {
     return $self->recurse_where_hash($logic || 'AND', $ast) if is_HashRef($ast);
     return $self->recurse_where_array($logic || 'OR', $ast) if is_ArrayRef($ast);
     croak "Unknown where clause type " . dump($ast);
   }
 
   # Deals with where({ .... }) case
-  method recurse_where_hash(LogicEnum $logic, HashRef $ast) returns (AST) {
+  method recurse_where_hash(LogicEnum $logic, HashRef $ast) {
     my @args;
     my $ret = {
       -type => 'expr',
@@ -215,7 +217,7 @@ class SQL::Abstract::Compat {
   }
 
   # Deals with where([ .... ]) case
-  method recurse_where_array(LogicEnum $logic, ArrayRef $ast) returns (AST) {
+  method recurse_where_array(LogicEnum $logic, ArrayRef $ast) {
     my @args;
     my $ret = {
       -type => 'expr',
@@ -248,7 +250,7 @@ class SQL::Abstract::Compat {
   }
 
   # { field => { .... } } case
-  method field_hash(Str $key, HashRef $value) returns (AST) {
+  method field_hash(Str $key, HashRef $value) {
     my ($op, @rest) = keys %$value;
 
     confess "Don't know how to handle " . dump($value) . " (too many keys)"
@@ -313,7 +315,7 @@ class SQL::Abstract::Compat {
     };
   }
 
-  method field(Str $key, $value) returns (AST) {
+  method field(Str $key, $value) {
 
     if (is_HashRef($value)) {
       return $self->field_hash($key, $value);
@@ -334,7 +336,7 @@ class SQL::Abstract::Compat {
     return $ret;
   }
 
-  method value($value) returns (AST) {
+  method value($value) {
     return $self->apply_convert( { -type => 'value', value => $value })
       if is_Str($value);
 

@@ -11,8 +11,6 @@ class SQL::Abstract::AST::v1 extends SQL::Abstract {
   use SQL::Abstract::Types qw/AST/;
   use Devel::PartialDump qw/dump/;
 
-  clean;
-
   # set things that are valid in where clauses
   override _build_expr_dispatch_table {
     return { 

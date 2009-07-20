@@ -573,7 +573,7 @@ for (@tests) {
       } else {
         &$test;
       }
-      is_same_sql_bind($stmt, \@bind, $_->{stmt}, $_->{bind});
+      is_same_sql_bind($stmt, \@bind, $_->{stmt}, $_->{bind}) or diag "On $_->{stmt}";
     }
   }
 
