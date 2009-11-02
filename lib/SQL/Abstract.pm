@@ -11,8 +11,6 @@ class SQL::Abstract {
   use SQL::Abstract::Types qw/NameSeparator QuoteChars AST/;
   use Devel::PartialDump qw/dump/;
 
-  clean;
-
   our $VERSION = '2.000000';
 
   our $AST_VERSION = '1';

@@ -6,24 +6,17 @@ use lib "$FindBin::Bin/../../lib";
 use Test::SQL::Abstract::Util qw/
   mk_name
   mk_value
-  mk_expr
   field_op_value
   :dumper_sort
 /;
 
 use SQL::Abstract::Compat;
 
-use Test::More tests => 2;
+use Test::More tests => 3;
 use Test::Differences;
 
 ok(my $visitor = SQL::Abstract::Compat->new);
 
-
-my $foo_id = { -type => 'identifier', elements => [qw/foo/] };
-my $bar_id = { -type => 'identifier', elements => [qw/bar/] };
-
-my $foo_eq_1 = field_op_value($foo_id, '==', 1);
-my $bar_eq_str = field_op_value($bar_id, '==', 'some str');
 
 eq_or_diff
   $visitor->update_ast('test', { foo => 1 }),
@@ -37,6 +30,22 @@ eq_or_diff
     ]
   },
   "simple update";
+
+eq_or_diff
+  $visitor->update_ast('test', { foo => 1 }, { id => 2 }),
+  { -type => 'update',
+    tablespec => mk_name('test'),
+    columns => [
+      mk_name('foo')
+    ],
+    values => [
+      mk_value(1)
+    ],
+    where => field_op_value('id' => '==', 2)
+  },
+  "simple update";
+
+
 
 
 
