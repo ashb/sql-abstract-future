@@ -399,6 +399,59 @@ one. The SQL used is from the MySQL dialect.
       },
   }
 
+=item * SELECT * FROM foo WHERE ( a, b ) IN ( SELECT 1, 2 )
+
+  {
+      type => 'select',
+      ast_version => 0.0001,
+      select => [
+          {
+              type => 'Identifier',
+              args => [ '*' ],
+          },
+      ],
+      tables => {
+          type => 'Identifier',
+          args => [ 'foo' ],
+      },
+      where => {
+          type => 'Operator',
+          op   => 'IN',
+          args => [
+              {
+                  type => 'Operator',
+                  op   => ',',
+                  args => [
+                      {
+                          type => 'Identifier',
+                          args => [ 'a' ],
+                      },
+                      {
+                          type => 'Identifier',
+                          args => [ 'b' ],
+                      },
+                  ],
+              },
+              {
+                  type => 'select',
+                  ast_version => 0.0001,
+                  select => [
+                      {
+                          type    => 'Value',
+                          subtype => 'Number',
+                          value   => 1,
+                      },
+                      {
+                          type    => 'Value',
+                          subtype => 'Number',
+                          value   => 2,
+                      },
+                  ],
+              },
+          ],
+      },
+  }
+
 =item * INSERT INTO foo ( col1, col2 ) VALUES ( 1, 3 )
 
   {
